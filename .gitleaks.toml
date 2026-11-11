@@ -1,0 +1,8 @@
+# fixtures/attestation/*.report.raw.json are public NEAR AI attestation reports (public keys, OHTTP key
+# configs, quotes) fetched without any credential; gitleaks' generic-api-key rule flags them falsely.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "public NEAR AI attestation reports"
+paths = ['''fixtures/attestation/.*\.report\.raw\.json''']
