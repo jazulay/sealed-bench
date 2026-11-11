@@ -1,0 +1,26 @@
+{
+  "name": "sealed-bench",
+  "version": "0.1.0",
+  "description": "Sampled on-chain audits of private AI evaluations on NEAR, backed by NEAR AI Cloud TEE signatures.",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "sb": "node cli/src/cli.ts",
+    "gen": "node cli/src/cli.ts gen",
+    "verify": "node cli/src/cli.ts verify",
+    "tamper": "node cli/src/cli.ts tamper",
+    "test": "node --test cli/test/*.test.ts",
+    "web": "node cli/src/cli.ts export-web --dir fixtures/demo,fixtures/demo-fail",
+    "test:contract": "cd contract && cargo test",
+    "build:contract": "cd contract && cargo near build non-reproducible-wasm"
+  },
+  "dependencies": {
+    "@phala/dcap-qvl": "^0.7.1",
+    "ethers": "^6.17.0",
+    "near-api-js": "^7.5.3"
+  }
+}

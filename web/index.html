@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sealed Bench: audited private AI evals on NEAR</title>
+<style>
+  :root { --bg:#0b0d10; --card:#14181d; --fg:#e8ecef; --mut:#8a96a3; --ok:#3ecf8e; --bad:#ff5c5c; --warn:#f5b942; --acc:#7aa2ff; }
+  * { box-sizing:border-box } body { margin:0; font:15px/1.5 ui-sans-serif,system-ui,sans-serif; background:var(--bg); color:var(--fg) }
+  main { max-width:1040px; margin:0 auto; padding:32px 20px 80px }
+  h1 { margin:0 0 4px; font-size:28px } .sub { color:var(--mut); margin-bottom:24px }
+  .card { background:var(--card); border-radius:12px; padding:18px 20px; margin:14px 0 }
+  .row { display:flex; flex-wrap:wrap; gap:18px; align-items:baseline }
+  .big { font-size:30px; font-weight:700 } .mut { color:var(--mut) } code, .mono { font:12px/1.4 ui-monospace,monospace; word-break:break-all }
+  .pill { display:inline-block; padding:2px 10px; border-radius:99px; font-weight:700; font-size:12px }
+  .Audited { background:#123d2a; color:var(--ok) } .Failed { background:#4a1616; color:var(--bad) } .Committed,.Started { background:#3d3412; color:var(--warn) }
+  .warn { border-left:4px solid var(--warn); padding:10px 14px; background:#221d0e; border-radius:8px; margin:12px 0 }
+  table { width:100%; border-collapse:collapse; font-size:13px } td, th { padding:6px 8px; border-bottom:1px solid #222a33; text-align:left; vertical-align:top }
+  a { color:var(--acc) } details summary { cursor:pointer; color:var(--acc) }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sealed Bench</h1>
+  <div class="sub">Private AI evals, publicly audited on NEAR. Owners commit a sealed test set and every model run; NEAR randomness picks which items must be revealed; the contract checks each reveal against NEAR AI Cloud TEE signatures and re-grades it.</div>
+  <div id="meta" class="mut"></div>
+  <div id="gap"></div>
+  <div id="suites"></div>
+  <div class="card mut">
+    <b>How to read a claim.</b> "Owner-reported score X; 20/20 sampled entries verified" means each sampled entry matched the committed set, the committed run, a signature from a pinned NEAR AI TEE signer, and the committed grade.
+    If the owner had misreported at least 10% of entries, a 20-item sample would catch that with probability at least 87.8% (1&minus;0.9<sup>20</sup>), or about 90.5% exactly when 20 distinct items are drawn from 100. This holds per run.
+    It is <i>not</i> the probability that the score is correct, and it says nothing about benchmark quality.
+  </div>
+</main>
+<script src="data.js"></script>
+<script>
+const D = window.SEALED_BENCH, $ = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstChild; };
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+document.getElementById("meta").innerHTML = `Contract <a href="${D.explorer}/address/${D.contract}">${D.contract}</a> on NEAR testnet &middot; data exported ${esc(D.generated_at)} &middot; replay with <code>npm run verify</code>`;
+const pct = (a, b) => (100 * a / b).toFixed(1) + "%";
+const byModel = {};
+for (const s of D.suites) for (const r of s.runs) (byModel[r.model] ??= {})[s.suite_id] = { ...r, kind: /public/.test(s.suite_id) ? "public" : "sealed" };
+const gapRows = Object.entries(byModel).map(([m, x]) => {
+  const pub = Object.values(x).find((r) => r.kind === "public" && r.audit?.status === "Audited");
+  const sea = Object.values(x).find((r) => r.kind === "sealed" && r.audit?.status === "Audited");
+  if (!pub || !sea) return "";
+  return `<tr><td>${esc(m)}</td><td>${pct(pub.score, pub.n)}</td><td>${pct(sea.score, sea.n)}</td><td><b>${((100 * pub.score / pub.n) - (100 * sea.score / sea.n)).toFixed(1)} pts</b></td></tr>`;
+}).join("");
+if (gapRows) document.getElementById("gap").appendChild($(`<div class="card"><h2 style="margin:0 0 8px">Public-to-sealed variant gap</h2>
+  <div class="mut">Same 25 GSM8K problems: the public originals versus 100 sealed numeric variants. A large gap suggests memorization of the public set.</div>
+  <table><tr><th>model</th><th>public originals</th><th>sealed variants</th><th>gap</th></tr>${gapRows}</table></div>`));
+for (const s of D.suites) {
+  const el = $(`<div class="card"></div>`);
+  el.innerHTML = `<div class="row"><h2 style="margin:0">${esc(s.suite_id)}</h2><span class="mut">n=${s.n} &middot; k=${s.k} &middot; root <code>${esc(s.root.slice(0, 16))}&hellip;</code> &middot; challenge drawn at block ${esc(s.draw_height)}</span></div>`;
+  for (const r of s.runs) {
+    const st = r.audit?.status ?? "unknown";
+    const mock = r.model.startsWith("mock/");
+    const rows = r.revealed.map((x) => `<tr><td>${x.idx}</td><td>${esc(x.question.slice(0, 140))}${x.question.length > 140 ? "&hellip;" : ""}</td><td>${x.answer}</td><td>${x.model_answer ?? "&ndash;"}</td><td>${x.grade ? "&#10003;" : "&#10007;"}</td><td class="mono">${esc(x.signer)}</td></tr>`).join("");
+    el.appendChild($(`<div style="margin-top:14px">
+      ${mock ? `<div class="warn"><b>DEV-ONLY mock signer.</b> This run uses a publicly known test key, not NEAR AI and not a TEE. It rehearses the on-chain protocol only.</div>` : ""}
+      <div class="row"><span class="big">${r.score}/${r.n}</span><span>${esc(r.model)}</span><span class="pill ${st}">${st.toUpperCase()}</span>
+      <span class="mut">${r.audit ? `${r.audit.revealed}/${r.audit.k} sampled entries verified` : ""}</span></div>
+      <div class="mut" style="margin:6px 0">${esc(r.audit?.claim ?? "")}</div>
+      <details><summary>${r.revealed.length} revealed items and transactions</summary>
+        <table><tr><th>#</th><th>question</th><th>key</th><th>model</th><th>grade</th><th>recovered signer</th></tr>${rows}</table>
+        <p class="mono">${(r.txs ?? []).map((t) => `<a href="${t.explorer}">${t.tx}</a> (${t.status})`).join("<br>")}</p>
+      </details></div>`));
+  }
+  document.getElementById("suites").appendChild(el);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "network": "testnet",
+  "rpc": "https://rpc.testnet.fastnear.com",
+  "contractId": "sealedbench-hk26.testnet",
+  "admin": "sealedbench-hk26.testnet",
+  "owner": "sealedbench-owner-hk26.testnet",
+  "explorer": "https://testnet.nearblocks.io"
+}

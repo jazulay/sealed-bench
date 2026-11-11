@@ -1,0 +1,19 @@
+# NEAR HACKATHON idea debate — ROUND 3 (lock-in)
+CRITIC ONLY: text reply, no code, no file edits, no modifying commands, no chain actions.
+Round 2: all three (Grok, Claude, Codex) chose SEALED BENCH as a sampled audit. Below is the merged spec. Reply in under 250 words: "ACCEPT" or "ACCEPT WITH <one change>" or "OBJECT: <blocking flaw>". Only raise blocking issues.
+
+## LOCKED SPEC: Sealed Bench — sampled audit for private evals
+Tracks: privacy (primary), open; agents only if CLI JSON/view method ships.
+Claim language: "Owner-reported score 72%; 20/20 sampled entries verified on NEAR. Under uniform sampling, if >=10% of entries were invalid this audit would have caught it with prob >= 88% (1-(1-f)^k). This is not the probability the score is correct and says nothing about benchmark quality." Headline experiment = "public-to-sealed variant gap" (contamination is one possible explanation, not proven).
+Dataset: ~25 public GSM8K-style problems turned into code templates; generator draws fresh numbers/names; answers computed by code (correct by construction, difficulty-matched). ~100 sealed items + their ~100 public originals. Suite and reporting rule fixed before results; publish whatever comes out.
+Protocol (one NEAR testnet Rust contract):
+1. commit_suite: salted Merkle root over (idx, item, answer) + nominal bond; pinned TEE signer address(es) + attestation report hash (registered after off-chain attestation check; trust basis disclosed).
+2. start_run(model): contract derives run nonce from random_seed; every request = public template + item + nonce; temp 0, thinking off, max_tokens ~400, non-stream, canonical model id, x-no-aliasing; model must end with "ANSWER: <int>".
+3. commit_run(model): run root over (idx, req_hash, resp_hash, sig, grade) + FULL public grade vector; contract computes the score itself from the vector.
+4. All model runs for the suite (2 models: Qwen3.8-27B, GLM-5.3-flash; DeepSeek stretch) must be committed before draw_challenge, callable by anyone only after height H+N, first call wins, one immutable set of k=20 distinct indices shared across all runs; reveal deadline; timeout => run FAILED.
+5. reveal (batches of ~5): contract checks Merkle proofs (suite + run), recomputes req hash from template+item+nonce, sha256 of response bytes, ecrecover vs pinned signer, extracts last "ANSWER:" integer from raw response bytes, compares to committed answer and to the grade-vector entry. Pass => AUDITED; any mismatch => FAILED (status permanent; runs cannot be deleted).
+6. View get_audit(suite, model) + CLI JSON output; one static results page with explorer links.
+Judge path: deployed testnet contract + genuine recorded signed fixtures; `npm run verify` (no API key) re-verifies everything; `npm run tamper` alters a challenged entry -> rejected on-chain / in verifier. Live inference optional flag.
+Build order: Wed = signature byte-exact spike (JS + Rust ecrecover unit test) + save fixture + contract skeleton + gas for 1 reveal; Thu AM = generator + inference runs (save all sigs immediately); Thu PM = commit/challenge/reveal on testnet + CLI; Thu night = page, README (do X -> see Y, threat model), video; Fri AM buffer. Fallback if request hash not reproducible: response-only binding, disclosed.
+Cut: bond economics, MCP server, market.near.ai integration, signer rotation, 3rd model, fancy leaderboard, offline attestation re-check unless it truly works.
+Threat model: trusts NEAR AI TEE key + admin signer pinning (model id is gateway claim, not proof of weights); set hidden from vendors/public, not from owner; unsampled grades only probabilistically checked; re-rolls not prevented (temp 0 + nonce reduce, disclosed); revealed items burned; block-producer randomness bias; recorded replay proves verification, not live availability.

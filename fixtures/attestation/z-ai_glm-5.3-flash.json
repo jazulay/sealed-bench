@@ -1,0 +1,15 @@
+{
+ "fetched_at": "2026-11-11T20:20:38.559Z",
+ "nonce": "bdd433665deb73dabaf0a942baae79a0d8052f055bfdf395bc48bb8802a6bf2e",
+ "report_sha256": "ebe8043a63b5c1b63031530110ac39c1b94e8f0ef98f37524de1ffaef8eb121f",
+ "signing_address": "0x3b753b4406613c5e70ae640508632b600424fa0c",
+ "checks": {
+  "nonce_echo": "ok",
+  "dcap_tcb_status": "UpToDate",
+  "report_data_binds_signer_and_nonce": "ok",
+  "mrconfigid_matches_app_compose": "ok",
+  "rtmr3_replay": "ok",
+  "app_compose_sha256": "a0e3c6f4f21a60ea3f5c96bc7ef319b03a184ca2049605399275fbcea74e8c5f"
+ },
+ "raw_report_file": "fixtures/attestation/z-ai_glm-5.3-flash.report.raw.json"
+}

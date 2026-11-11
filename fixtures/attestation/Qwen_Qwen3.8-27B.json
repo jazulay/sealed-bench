@@ -1,0 +1,15 @@
+{
+ "fetched_at": "2026-11-11T20:20:37.575Z",
+ "nonce": "eb2fbdbbc9a3d73988c80bfdee2910e5f66198aad2f6f3a7c467ec8d6769c9e5",
+ "report_sha256": "c06d7b9478d16d1aec6c9cb2b20645b5abce6c1b167a5471a3a5cbc3dd467b0a",
+ "signing_address": "0x835ab53d20294ef795906dff21ae4c045336aa26",
+ "checks": {
+  "nonce_echo": "ok",
+  "dcap_tcb_status": "UpToDate",
+  "report_data_binds_signer_and_nonce": "ok",
+  "mrconfigid_matches_app_compose": "ok",
+  "rtmr3_replay": "ok",
+  "app_compose_sha256": "e8416a02d6f7ce47baaa52e3925b934fd30834b04fc9086b363db9b1d12c729d"
+ },
+ "raw_report_file": "fixtures/attestation/Qwen_Qwen3.8-27B.report.raw.json"
+}

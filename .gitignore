@@ -1,0 +1,10 @@
+node_modules/
+contract/target/
+# working dirs hold sealed answer keys and salts: never commit
+runs/
+*.secret.json
+.env
+.env.*
+*.pem
+*.key
+.near-credentials/

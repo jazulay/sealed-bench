@@ -1,0 +1,593 @@
+{
+ "suite": {
+  "suite_id": "demo-mock-cheat-v2",
+  "root": "7c293f4e9eff23dc3cd1e1a4ba5ed9664a13755afbd52b760ade4c828fa19a7c",
+  "n": 100,
+  "k": 20,
+  "request_template": "{\"model\":\"{MODEL}\",\"messages\":[{\"role\":\"system\",\"content\":\"You are taking a math test. Think briefly, then end your reply with one final line of the form ANSWER: <integer>. Run nonce: {NONCE}\"},{\"role\":\"user\",\"content\":{QUESTION}}],\"temperature\":0,\"max_tokens\":1200,\"stream\":false}",
+  "challenge": [
+   1,
+   11,
+   13,
+   18,
+   21,
+   29,
+   30,
+   37,
+   38,
+   41,
+   43,
+   44,
+   51,
+   55,
+   59,
+   80,
+   81,
+   84,
+   87,
+   89
+  ],
+  "draw_height": 277263910,
+  "draw_seed": "49ac0da199d95b7f6694aae7fb31603fdb5e14d7c1605c36aa73fcfc579f20db"
+ },
+ "contract": "sealedbench-hk26.testnet",
+ "network": "testnet",
+ "run": {
+  "model": "mock/DEV-ONLY-not-a-TEE",
+  "nonce": "c6a9380f2e6e88dc39b7fc4ad7426afde771085a606c280cd85f1a07fe3a1ae2",
+  "run_root": "c10768bee2999dec19361d609543d6a236efeb06c1cfec6f8fff79ba5a3f7e25",
+  "grades": "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+ },
+ "pinned_signers": [
+  "0xa6c3a19d7bdf8743396362411554a92f74fe9fa3"
+ ],
+ "revealed": [
+  {
+   "idx": 1,
+   "salt": "7545c8f4c27ce43bf8f6112e5acb4b056501c12bce63070ac3eb9a447a72fc9a",
+   "answer": 24,
+   "question": "A robe takes 16 bolts of blue fiber and half that much white fiber.  How many bolts in total does it take?",
+   "response": "{\"id\":\"mock-c6a9380f-1\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 1.)\\nWorking...\\nANSWER: 29\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":27,\"completion_tokens\":20}}",
+   "signature": "0x68a9c446da8ab5a6e8485eac33b397c4a6c9bfd1fc5f5cf2145b2b88395e2a1479fccbe4f3c8302b3ede7c85cd8f0106e1ca68b75eaaaa3d171baef711fcaef71c",
+   "grade": 1,
+   "suite_proof": [
+    "d9e5cf08edf6b36d03411e8151091afccd73d32e266a6089b16eb8631405d2ca",
+    "8c64a5ad7a79d921db688b4f8166167c6769b3194759f0f5cab0a20c34065508",
+    "af7fb7400ad723aaeb055a8c0f0c3d66e1bbdce1adf0368704225354fcea7b26",
+    "365d95842b8f1ddf82270be2ae86efc2adcf61e9258e70331b8e51bdc39dbed6",
+    "e24d4bb672b135cc4818743f32f3e656ac4b5d12d6dbfb5d56b62b4d3e77aa24",
+    "d36303764ba777a4f0a4cfb95000f200261d1253808cee4b44388eb337283601",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "0f41e55b2af128ebf968057f1367651ff34dd9ada2fef4a1cde820cf86859fab",
+    "644d3c6211944e6fa087c96d538fdc9921a58ed28082be116ad78e79ebda4c84",
+    "fe528ac4e546eabb5ad6fd5078e468bcd1d1f53c7f6333e83ad80118f36d98de",
+    "366d273f003c86887c45c5cbcd2d356c65208f2d30ba47b12de39c3841146feb",
+    "6662297c415710b24fdb42b2f6fdf7d49f464b2b35121ab439479e98500cfea0",
+    "7964f487dd66db13ccd03f9995901fd82f259b45af2361327c4f335fa081531c",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 11,
+   "salt": "bd1b620c6c3ed1ae0fb41140df9bacebd4e3507fd34302e3931e8c6a257bed3d",
+   "answer": 24,
+   "question": "Billy sells DVDs. He has 11 customers on Tuesday. His first 4 customers buy one DVD each.  His next 5 customers buy 4 DVDs each.  His last 2 customers don't buy any DVDs. How many DVDs did Billy sell on Tuesday?",
+   "response": "{\"id\":\"mock-c6a9380f-11\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 11.)\\nWorking...\\nANSWER: 27\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":53,\"completion_tokens\":20}}",
+   "signature": "0x5767469a4285bde586f3738204933e3c00189c4b9e7305efd6f12d65f516ecf13551cea29b3d5173e1277c6282961cdc15be46da552325d7c99456317fec85031c",
+   "grade": 1,
+   "suite_proof": [
+    "769086c0b61f85276ff51b08c8215f97fe6e8d403b8ed9fe3a840667aaaf5d8f",
+    "834b61156c459ad6ed93d60f069616d41460fabc19d6e74cec982d60d951b13e",
+    "7e8b1ef626bd9350eb6f628195c865373bebccc75e5c5536ae4b8329a802be55",
+    "29ead0db194b1eb56767e0380c552362dc514493ddf5e372ab0184b3a9066745",
+    "e24d4bb672b135cc4818743f32f3e656ac4b5d12d6dbfb5d56b62b4d3e77aa24",
+    "d36303764ba777a4f0a4cfb95000f200261d1253808cee4b44388eb337283601",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "449639c8df2fbc7fc34a840a3dc4e3930625e99d2445d062c4d67e3d634a4cb6",
+    "5045677b2b237ed3e83dd50171e0fd0aa57b3e04bad1e704b2ae9966d1477b69",
+    "c4254eaf236be3b651ab49bc07e673798a3ce3e26ff10f30e0ec113358b9b035",
+    "8e64fa8ddf62210c0ee11190326c4d26b69426d05345e3850acf7ae4cc1c700b",
+    "6662297c415710b24fdb42b2f6fdf7d49f464b2b35121ab439479e98500cfea0",
+    "7964f487dd66db13ccd03f9995901fd82f259b45af2361327c4f335fa081531c",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 13,
+   "salt": "5ae28fa0c86776fefd711b73671bc63cd6244d16f10288387e61a1dd574dfc3a",
+   "answer": 392,
+   "question": "Mishka bought 4 pairs of shorts, 4 pairs of pants, and 4 pairs of shoes. One pair of shorts costs $22.50. One pair of pants costs $33.50 and one pair of shoes costs $42. How many dollars did Mishka spend on all the clothing items?",
+   "response": "{\"id\":\"mock-c6a9380f-13\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 13.)\\nWorking...\\nANSWER: 392\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":58,\"completion_tokens\":20}}",
+   "signature": "0x4a57c4c8ab7491f943bf9bf8d9398404b244105a4f956e0016357413790fa72a215e9353874c4c0e4bbbaf9ae9e832dc0fd0ba4232e6080a5ead8be309d3d5211b",
+   "grade": 1,
+   "suite_proof": [
+    "f0ac265130293953679040637380017e9c07e9bbe2d3da196ddf0b970c11c7e2",
+    "40749a1379a77da380a02db4f6d0fdb3c0d98aeebc6fafb5a4a264161cb5f758",
+    "f70b035ef81ff1291e6f808d61c1d22fb8edde96d31cb4125e4ee70f9d1d51ca",
+    "29ead0db194b1eb56767e0380c552362dc514493ddf5e372ab0184b3a9066745",
+    "e24d4bb672b135cc4818743f32f3e656ac4b5d12d6dbfb5d56b62b4d3e77aa24",
+    "d36303764ba777a4f0a4cfb95000f200261d1253808cee4b44388eb337283601",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "63a65f65dcfe66261b2458d774804ab2d3478424aa41905a5f7cb70e3ab348e5",
+    "166b4bdcb0ffedea40537c3502a03615ce68e95339f91b21d96c140b9b797494",
+    "13c2a5aa91c3059436ceb6aca8fe6c2077cbcf2cd1c6e7ab1f01a5b1f41eb246",
+    "8e64fa8ddf62210c0ee11190326c4d26b69426d05345e3850acf7ae4cc1c700b",
+    "6662297c415710b24fdb42b2f6fdf7d49f464b2b35121ab439479e98500cfea0",
+    "7964f487dd66db13ccd03f9995901fd82f259b45af2361327c4f335fa081531c",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 18,
+   "salt": "ac7a41fb300eee756b3b882c25dbadd64af2c201ef9d42b8c2978e7bac1b9b13",
+   "answer": 77,
+   "question": "John takes care of 22 dogs.  Each dog takes .5 hours a day to walk and take care of their business.  How many hours a week does he spend taking care of dogs?",
+   "response": "{\"id\":\"mock-c6a9380f-18\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 18.)\\nWorking...\\nANSWER: 77\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":40,\"completion_tokens\":20}}",
+   "signature": "0x299bc73ad8c2ed7f633e487a46a607da871fd88aa5137859313cb16e7c6afce673ff23e8d2b39c189ecff01f40bbc6ec0445a418344eb684def046b0055bc8841b",
+   "grade": 1,
+   "suite_proof": [
+    "94b9f7552b91241922f759a63473d55acc68d0809b9cf1415dd23112c27d2468",
+    "78794f17b00b4de390a406fb7248addc819e852fe7d722a9e3d9ba2058857582",
+    "1f37831f1bd9781e8fd36b65e471aba01d8e9cafcc77e32a5535b3ff4e18f2a3",
+    "193210ec35ffa4b9a418b93712dfe1e74ac19e3ea7f27000648ca6c8dbef948e",
+    "a639e0bc598eea2188006a2d6b46968e8de61510a083cde8cee54a400acfa440",
+    "d36303764ba777a4f0a4cfb95000f200261d1253808cee4b44388eb337283601",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "69cf0d50e6245359167dcdc779156ece197e7376a45766277307cc60976c363a",
+    "7d278c931053e6add216e6da3bcd7eaf10a7fa53657c7212cf753c53be5d0c1e",
+    "90eb01deded6a681e707e8aca016186a409e5f009e8c9128b4981e747d0748c4",
+    "6a86ae3ccd3acec4a89f406b4450c74099aa54599e9860dd02e8dc53c611fda0",
+    "183047c21670cdddfb3ff1f27176c66a2cdc5b9301b640d8b8c1465a114710c7",
+    "7964f487dd66db13ccd03f9995901fd82f259b45af2361327c4f335fa081531c",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 21,
+   "salt": "f7e237ebe64e9f518ae5392dda7e2972a6afc96b334ece0e7d26d4681ab8225c",
+   "answer": 60,
+   "question": "Terry eats 2 yogurts a day.  They are currently on sale at 5 yogurts for $6.00.  How much does he spend on yogurt over 25 days?",
+   "response": "{\"id\":\"mock-c6a9380f-21\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 21.)\\nWorking...\\nANSWER: 67\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":32,\"completion_tokens\":20}}",
+   "signature": "0x9dee7253a3488532795e0873dcc3618dfef313dffe21714b0a8c37e937aa0af44d28d17e1de8d485ecbe3398e435d7cdede6adfafc284cc747fbe36d2b8fec681c",
+   "grade": 1,
+   "suite_proof": [
+    "54fcb362d9198b018e4a80253a6e58de359829a19ab6dd4fb517f580604a6af3",
+    "789e127955f6b4dd017cafe40bc5402094cf76daec4322df3e22e277a5db36ff",
+    "096e529564569c8df0a00654f0d8bb5bbef539e1cae6bfe7af9fa1a761bdb79e",
+    "193210ec35ffa4b9a418b93712dfe1e74ac19e3ea7f27000648ca6c8dbef948e",
+    "a639e0bc598eea2188006a2d6b46968e8de61510a083cde8cee54a400acfa440",
+    "d36303764ba777a4f0a4cfb95000f200261d1253808cee4b44388eb337283601",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "ccfa2cd16dab11623b58f1d37df19ad3f3256fee87824e9ee362a5c303d62c99",
+    "607151adcb6d62c3cad26126b5f7014e11a293c6aa8a739a9f277931aa4b6091",
+    "14ef1b824247e6f808fbbdc971d1055426fb306b173b1a949e6a3489b08f0d06",
+    "6a86ae3ccd3acec4a89f406b4450c74099aa54599e9860dd02e8dc53c611fda0",
+    "183047c21670cdddfb3ff1f27176c66a2cdc5b9301b640d8b8c1465a114710c7",
+    "7964f487dd66db13ccd03f9995901fd82f259b45af2361327c4f335fa081531c",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 29,
+   "salt": "3ffbe8c7ab92f94bf10d51edd7dd7673c4976319d85b12bff86e41301acee9e5",
+   "answer": 363,
+   "question": "Toulouse has 4 times as many sheep as Charleston. Charleston has 2 times as many sheep as Seattle. How many sheep do Toulouse, Charleston, and Seattle have together if Seattle has 33 sheep?",
+   "response": "{\"id\":\"mock-c6a9380f-29\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 29.)\\nWorking...\\nANSWER: 363\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":48,\"completion_tokens\":20}}",
+   "signature": "0x9da596ffd8db56d2c732bc601401fa4ad2ac0b9eb398df03f86d6cdd4aadfaf4343fdbf01aa273d61da8669a3d2479b0954a44667680bfc85e476f63504e25381b",
+   "grade": 1,
+   "suite_proof": [
+    "9e6980db768cf63f391dc5ed2079b4b9be019612a882b8ebf6c025c9d8a85de5",
+    "9676da3c7e3535dba5f0593d38e7ce5aa9f60406104c3d1f7765fe8f74f4d7ec",
+    "d6d232a090fbb33f329df9436e7e05110b78b66d6ab0a3a0120aeb75f12f3c2f",
+    "661736db1db8d9932d117d21207bee13de518b48c3f80f48cc1e9b60885794d7",
+    "a639e0bc598eea2188006a2d6b46968e8de61510a083cde8cee54a400acfa440",
+    "d36303764ba777a4f0a4cfb95000f200261d1253808cee4b44388eb337283601",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "a9c353174f135a25bd5944a1dec7f79cfc1ef2d05b55ec36bcb4c14909942ed7",
+    "a979034d6eaf7b345a1b66f792775aea236359320f0b7e16e8e8e7de7520d17a",
+    "3e645dc6c660d5c1dcb7a2dc616688bc1cda6a9cff305df4bb6c21c93eebc755",
+    "a7f96945cf673dcba189a19ef23e41cbc14cfdf29d46c4266c28f77cdc7240a2",
+    "183047c21670cdddfb3ff1f27176c66a2cdc5b9301b640d8b8c1465a114710c7",
+    "7964f487dd66db13ccd03f9995901fd82f259b45af2361327c4f335fa081531c",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 30,
+   "salt": "9ded4b0081dc8831cd19d7fe8aa6759ae4617791af149fdb1f7e5942a96e3a7d",
+   "answer": 1484,
+   "question": "Eliza's rate per hour for the first 40 hours she works each week is $35. She also receives an overtime pay of 1.2 times her regular hourly rate. If Eliza worked for 42 hours this week, how much are her earnings for this week?",
+   "response": "{\"id\":\"mock-c6a9380f-30\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 30.)\\nWorking...\\nANSWER: 1489\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":57,\"completion_tokens\":20}}",
+   "signature": "0x3a61c7f0080b4d3510d70378ecf6d80f7c590cd65c4520b66c74b4fa1be4046e1991e7584b951465624635307065289878994343e182b0e08c4ff54b27c992e21c",
+   "grade": 1,
+   "suite_proof": [
+    "d7ad034e817de6114ee1d49156d37dd0ab9e1a087ae632ef118e82fc8fef6680",
+    "ea87106ed8ee6c0da2de4b8108f38444332ac44a60da4ae4e9d0ed760243cf21",
+    "d6d232a090fbb33f329df9436e7e05110b78b66d6ab0a3a0120aeb75f12f3c2f",
+    "661736db1db8d9932d117d21207bee13de518b48c3f80f48cc1e9b60885794d7",
+    "a639e0bc598eea2188006a2d6b46968e8de61510a083cde8cee54a400acfa440",
+    "d36303764ba777a4f0a4cfb95000f200261d1253808cee4b44388eb337283601",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "a9672a41a72eefc2d34245915dbd5b2e35c073d3a517effd5234fdf9820b221d",
+    "6ea14dbfea623fedc17a180a49aa3cd3a95218ed86c26f31bf3646323a261fb7",
+    "3e645dc6c660d5c1dcb7a2dc616688bc1cda6a9cff305df4bb6c21c93eebc755",
+    "a7f96945cf673dcba189a19ef23e41cbc14cfdf29d46c4266c28f77cdc7240a2",
+    "183047c21670cdddfb3ff1f27176c66a2cdc5b9301b640d8b8c1465a114710c7",
+    "7964f487dd66db13ccd03f9995901fd82f259b45af2361327c4f335fa081531c",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 37,
+   "salt": "edc5ee46f0914e086a5398a79eddcc616916bada36a8ec442d358eca7f2f1a44",
+   "answer": 15,
+   "question": "A candle melts by 5 centimeters every hour that it burns. How many centimeters shorter will a candle be after burning from 1:00 PM to 4:00 PM?",
+   "response": "{\"id\":\"mock-c6a9380f-37\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 37.)\\nWorking...\\nANSWER: 23\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":36,\"completion_tokens\":20}}",
+   "signature": "0x2258b783809299adac9f8247dcae4e1e540352d9811d74a1b4cb6cc111226cc7244c34ddf96b86c9314d562754f604aa6321a0e5ad04cdfc706d08333b2913a91c",
+   "grade": 1,
+   "suite_proof": [
+    "6e1a06d4a7efa3b1be3a8a8a805762f40fcea13bcd0e7437ed0cfa3e47886499",
+    "fa4b70d8107185057b59ec985f6323337e349412a40f2d395bd430a71329c464",
+    "e6b77270c52db6a97803e076019ba344ced9148ecbf4e816fefd3bb20320ba19",
+    "1d167df16e198ef5871a2b1cf5dc4280227713c638d0fc3c47038afc6c148635",
+    "e9ad1e4b529cf4e6a783f76a7a435a2a250286c069c5c0136023818791ec7f9f",
+    "64f9836555ab92288b2510f869a9d416d20493aaeb1f7534dd6c199d60223266",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "32dae4bcffdfa04f0e8ba1a1d30f3856839cfc76529ad0b8680579677dd1d68c",
+    "c995a33d34f68d44ad9043aebedb0f0fe0464dd4a610dde6a569a9cecd1aa0c8",
+    "41b1ce685ed103f9dd088ace108d2eb413f84d7e1b2fbb82af2ff6efdd7d5cec",
+    "b9b47ae53f70844f5970ee3d9b52b4bbcc6a891e5420fd8d6392be62ccc98e7f",
+    "3690719ac6f071225a745eb1d680e8f267a4e8254f91b22fb31cf795f2267d05",
+    "8478b528f450a54c64dc191814e19370cff14cede239705fb551bb44dd43ba05",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 38,
+   "salt": "cd187843b814e5049b57ad603393a2eb2dc0bdd3512da239e78947193cf4030a",
+   "answer": 134,
+   "question": "Mishka bought 2 pairs of shorts, 2 pairs of pants, and 2 pairs of shoes. One pair of shorts costs $17.50. One pair of pants costs $17.50 and one pair of shoes costs $32. How many dollars did Mishka spend on all the clothing items?",
+   "response": "{\"id\":\"mock-c6a9380f-38\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 38.)\\nWorking...\\nANSWER: 142\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":58,\"completion_tokens\":20}}",
+   "signature": "0x6238238a462e605e9027c384a225008419f7e52c482f9f809685c05c3bcc6b3403e3bd33c59752675ccbbe3fe6b1460e2a6a6a01696b6b5c9195b8972402cc911c",
+   "grade": 1,
+   "suite_proof": [
+    "923fa02672698a97abe49cc12a27e6d17dabfd309d54ad8ee6be3ba80edf3dde",
+    "1ec096c624077a24eed26548231e22a5da3d72091d03184cb20345df6cb92fa4",
+    "e6b77270c52db6a97803e076019ba344ced9148ecbf4e816fefd3bb20320ba19",
+    "1d167df16e198ef5871a2b1cf5dc4280227713c638d0fc3c47038afc6c148635",
+    "e9ad1e4b529cf4e6a783f76a7a435a2a250286c069c5c0136023818791ec7f9f",
+    "64f9836555ab92288b2510f869a9d416d20493aaeb1f7534dd6c199d60223266",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "1b6200e8d10974de82d5b6cfff8043d9c07bcc5860d7a2a42002feb0f57b9bae",
+    "3b8f6a61b3a07d0b99d483468005988ce27c55ae91925751b59a16b3e079120e",
+    "41b1ce685ed103f9dd088ace108d2eb413f84d7e1b2fbb82af2ff6efdd7d5cec",
+    "b9b47ae53f70844f5970ee3d9b52b4bbcc6a891e5420fd8d6392be62ccc98e7f",
+    "3690719ac6f071225a745eb1d680e8f267a4e8254f91b22fb31cf795f2267d05",
+    "8478b528f450a54c64dc191814e19370cff14cede239705fb551bb44dd43ba05",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 41,
+   "salt": "497764982e811d55e832dcc9a37893a24c79aa62fb2875acc3e58fa754992917",
+   "answer": 128,
+   "question": "Gloria is shoe shopping when she comes across a pair of boots that fit her shoe budget. However, she has to choose between the boots and two pairs of high heels that together cost 8 dollars less than the boots. If one pair of heels costs $40 and the other costs twice as much, how many dollars are the boots?",
+   "response": "{\"id\":\"mock-c6a9380f-41\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 41.)\\nWorking...\\nANSWER: 128\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":77,\"completion_tokens\":20}}",
+   "signature": "0xb5dbbe275e4cfa9170efcc8cb8abae6dc89b6bc66c3506b0eaa88d24dc9aca921c99a6df471cd9a2756e722a067996cb7c001bd235ee318b1f39205da4cd9b4e1c",
+   "grade": 1,
+   "suite_proof": [
+    "bd6e1971d43aa20b0c6a919d563b19b13f35c8fc67a58567b63c730166bbcd48",
+    "d7cc05ee22cf0fe2e7f8b2c747524d956aa763f35dec3956ff34f3b141448d22",
+    "54ba5cf476870e264b2932918e54eec5ff62d9c12ac2b0dd89bba85ddc55fb86",
+    "86f5ca4150a119ebb8e2994a1367f404815f6614bf32e603c53770f59c077c2b",
+    "e9ad1e4b529cf4e6a783f76a7a435a2a250286c069c5c0136023818791ec7f9f",
+    "64f9836555ab92288b2510f869a9d416d20493aaeb1f7534dd6c199d60223266",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "7f2447668ed4c395669746220b7c7a026e45351658c6d302967f5f45c69d40d1",
+    "b1835911552703d41a431d413f679ad4393f769b59e18a6979549b9575534ddd",
+    "45284de978af37971b2d792af0b83022861ff806c55ccf31c9ab179c81498509",
+    "766254fc9cf8161ed4aaf219736d6c62cd060928b8d6e016cf78a6f4d0e05f95",
+    "3690719ac6f071225a745eb1d680e8f267a4e8254f91b22fb31cf795f2267d05",
+    "8478b528f450a54c64dc191814e19370cff14cede239705fb551bb44dd43ba05",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 43,
+   "salt": "f4bf769b698e3c174ae8d485d848f60cc84f84ea90699fac288203a44924035c",
+   "answer": 42,
+   "question": "John takes care of 12 dogs.  Each dog takes .5 hours a day to walk and take care of their business.  How many hours a week does he spend taking care of dogs?",
+   "response": "{\"id\":\"mock-c6a9380f-43\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 43.)\\nWorking...\\nANSWER: 44\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":40,\"completion_tokens\":20}}",
+   "signature": "0x34bb200bd8a8a707b53e7842aa2fe6db045eb64439acfefa01e12427484bbc277523cbd6ca095607f3c6e8cf471e5c66bf1cd4e8f6afa65bf48e036cf2cb00ea1b",
+   "grade": 1,
+   "suite_proof": [
+    "5189f56662c76eb1edfaea4edfd9f1610ef8bd4aef0f0ee49af765c66c077899",
+    "500d243d5a5675ee6bb3e43a5bad445367a4e9ed18214c7f4c4bb3b47ad012db",
+    "54ba5cf476870e264b2932918e54eec5ff62d9c12ac2b0dd89bba85ddc55fb86",
+    "86f5ca4150a119ebb8e2994a1367f404815f6614bf32e603c53770f59c077c2b",
+    "e9ad1e4b529cf4e6a783f76a7a435a2a250286c069c5c0136023818791ec7f9f",
+    "64f9836555ab92288b2510f869a9d416d20493aaeb1f7534dd6c199d60223266",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "65b4079579cb40012d2ec54fa019a0712c1eb27b86ec3c6f02fa1539a355e4c3",
+    "36e2133611225c53691e74f08d84ec8fd442b7dc42383c44e15a389f260df6ac",
+    "45284de978af37971b2d792af0b83022861ff806c55ccf31c9ab179c81498509",
+    "766254fc9cf8161ed4aaf219736d6c62cd060928b8d6e016cf78a6f4d0e05f95",
+    "3690719ac6f071225a745eb1d680e8f267a4e8254f91b22fb31cf795f2267d05",
+    "8478b528f450a54c64dc191814e19370cff14cede239705fb551bb44dd43ba05",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 44,
+   "salt": "1ab95306372de96375dfa7c2da0df92d94d6c78c477a29e13890c7d3f8127728",
+   "answer": 69,
+   "question": "Gretchen has 100 coins. There are 38 more gold coins than silver coins. How many gold coins does Gretchen have?",
+   "response": "{\"id\":\"mock-c6a9380f-44\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 44.)\\nWorking...\\nANSWER: 69\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":28,\"completion_tokens\":20}}",
+   "signature": "0xbb2faf0fdedcb409dc0b6fc1156d0920f36d91d83c1bc9c1077809ba968f120b0cc2586a6837787c226705441efd6a006bdc00bf2dbcd46625e63dda2f8b570b1b",
+   "grade": 1,
+   "suite_proof": [
+    "04819d71efb92289788251d02f634db1f2e190537107af710ebd0baf343348a9",
+    "4d6df0c5a369b7cab1e7a41d1464a9ae390c9fb220c9f823fd72198f87e394e3",
+    "6291e10d5908763c9cedec111cf372977374e91d1b35581ff031b37e6cea40da",
+    "86f5ca4150a119ebb8e2994a1367f404815f6614bf32e603c53770f59c077c2b",
+    "e9ad1e4b529cf4e6a783f76a7a435a2a250286c069c5c0136023818791ec7f9f",
+    "64f9836555ab92288b2510f869a9d416d20493aaeb1f7534dd6c199d60223266",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "d899db5b205f0904ca47a2315dfa5e03865f8a8266946e010540d7d41af0a3b7",
+    "0981656e4cc62513b80c96863e203b21c53fc48cfbc94932632135d70ed4dd0d",
+    "b0b277b70aef23168ac93e466a58dd76f3be051db861cb656d91d20452977867",
+    "766254fc9cf8161ed4aaf219736d6c62cd060928b8d6e016cf78a6f4d0e05f95",
+    "3690719ac6f071225a745eb1d680e8f267a4e8254f91b22fb31cf795f2267d05",
+    "8478b528f450a54c64dc191814e19370cff14cede239705fb551bb44dd43ba05",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 51,
+   "salt": "fe270552258ec52ee743ee0c7fc2bfcb5033df2dba76dccfb9ff913714ec9645",
+   "answer": 21,
+   "question": "A robe takes 14 bolts of blue fiber and half that much white fiber.  How many bolts in total does it take?",
+   "response": "{\"id\":\"mock-c6a9380f-51\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 51.)\\nWorking...\\nANSWER: 21\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":27,\"completion_tokens\":20}}",
+   "signature": "0x1786a664d7ada641699f88b64c327f3f2c59c578525bfcb5aafb1837705a34547695c427488ad8707bcb43d6bee8bf5ec8e7dd86a74dfea8371a581ef398e1a31c",
+   "grade": 1,
+   "suite_proof": [
+    "2d3671b9655e24c9a617de1bf23215f39daf3ecf03aebef12825b2afc767f19e",
+    "a6b03205539eba3a41189f9628c83c5799f69a117b3b51a86a2cfc54b30171d7",
+    "cf80f84da9656bef9e31082940a5e8cfcf97e5ab0f450c5732e7a53c96e4113d",
+    "56dd7a5f8aa044d65b4a731182a16f59ce8ae98cc5953435194513836b213389",
+    "0587531a161444d583d824c50475ca6dc5cfd2c97e0e25401aaec163497b1249",
+    "64f9836555ab92288b2510f869a9d416d20493aaeb1f7534dd6c199d60223266",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "2fec9deb634ed8c5abab525e7545597a5ed8a50fc00b29400030cda311ff1dd2",
+    "d91a4b32f7c2631bffef99b6d18a3e144608d6ecd324b9ac735fca9be112ffb6",
+    "f866ccf952e1f9a804e20353ba085e1f832c789f69a36acc20513208196c0950",
+    "2b1383a570e30b977cf6451a4daab02ab6a30b713b952cae2d23732161b7c1f1",
+    "33482097505c066017dd1c0b059e98311784675798521ea2a14b70d2fab48de4",
+    "8478b528f450a54c64dc191814e19370cff14cede239705fb551bb44dd43ba05",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 55,
+   "salt": "e6ef69e7a8491fba64e48243095a800e20ee0abee897cbfce602bab6a84d9375",
+   "answer": 992,
+   "question": "Eliza's rate per hour for the first 40 hours she works each week is $20. She also receives an overtime pay of 1.2 times her regular hourly rate. If Eliza worked for 48 hours this week, how much are her earnings for this week?",
+   "response": "{\"id\":\"mock-c6a9380f-55\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 55.)\\nWorking...\\nANSWER: 1000\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":57,\"completion_tokens\":20}}",
+   "signature": "0x5a293dd81566aaa82b46aea3379189c74ec2148b5d296fe2cd62a02d9709c5d42c6514eeb6446d2ec20b6f22d18d18fc7ddfcf5b8a05c8209a04a597603a58cb1c",
+   "grade": 1,
+   "suite_proof": [
+    "53550cbbce73ea841701cfe4451937ac92afd2906949d3f5d9e28021e66cf256",
+    "51503e4ffb2c9284f708c45c1f1a0106623ed83e151184488c601965c7feecc4",
+    "fcc8e0a4390529e8c759a1f707abd35859139302fe83a1ef1c2c035a42025cfc",
+    "56dd7a5f8aa044d65b4a731182a16f59ce8ae98cc5953435194513836b213389",
+    "0587531a161444d583d824c50475ca6dc5cfd2c97e0e25401aaec163497b1249",
+    "64f9836555ab92288b2510f869a9d416d20493aaeb1f7534dd6c199d60223266",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "d5c939e612463b606b667e6d8b7602f79a1e14eeb4aae6cebd0a2933ea707a33",
+    "8d25f0ec970961411c47811cb71fdd640fbd2cccd7b2b72b0cebc396d660d52d",
+    "c137a58a4b1c020459e65628076d39bfc0fdd053fe3b462e69b9807a2aad11ee",
+    "2b1383a570e30b977cf6451a4daab02ab6a30b713b952cae2d23732161b7c1f1",
+    "33482097505c066017dd1c0b059e98311784675798521ea2a14b70d2fab48de4",
+    "8478b528f450a54c64dc191814e19370cff14cede239705fb551bb44dd43ba05",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 59,
+   "salt": "3a58a99d383881fa50af0e805b36865f1f0f1b7098472ffadf5cdd012635be22",
+   "answer": 7,
+   "question": "Claire makes a 3 egg omelet every morning for breakfast.  How many dozens of eggs will she eat in 4 weeks?",
+   "response": "{\"id\":\"mock-c6a9380f-59\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 59.)\\nWorking...\\nANSWER: 7\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":27,\"completion_tokens\":20}}",
+   "signature": "0x664ef5471dbd39babe537a4ef4aaffb868ae8281f5226e8a77dd0cdb41e00ff73c7fff8b3ee5624a55d98c5f64f38afc4b7f01da1578c6edad5af26f633afd511c",
+   "grade": 1,
+   "suite_proof": [
+    "8430b812fedaaf8aefe2e823d6178cddb7f87804d266e63ecb9ab00c1e6be072",
+    "e4b99949e61c3249fb0c42277fdd2c8f88ffd455ee8caf3206f5b71b855af00b",
+    "978a2f345123fbddfc82abe53cd79e721b7d182ffcfe86a4d3da7518ccbe569b",
+    "235dd2ad420f7c2a804fb2313abbc37694ae966d2e5589af8a27eaaa34bb5595",
+    "0587531a161444d583d824c50475ca6dc5cfd2c97e0e25401aaec163497b1249",
+    "64f9836555ab92288b2510f869a9d416d20493aaeb1f7534dd6c199d60223266",
+    "e49cbb2e9747c8155232706ee621c9d1c9efde20a89d98cfed780717e3da9f3c"
+   ],
+   "run_proof": [
+    "a31fca0415340448bced1dcddc06ad2ccbf588194ddfa203695d3378e7918fec",
+    "f6895178ae1bb02769c4211f5ec412d9ea59d4760136ccb014055a219b1cc2a0",
+    "a6fd48612b3e191036bb72c077ce09f4b8687995cb0aeeb84b1e2d729dc5e2cb",
+    "3cdc2a698f8753caabe579ff73ac7a90b823ccda26b672218f26119a09f56725",
+    "33482097505c066017dd1c0b059e98311784675798521ea2a14b70d2fab48de4",
+    "8478b528f450a54c64dc191814e19370cff14cede239705fb551bb44dd43ba05",
+    "d70e71b775c61be4c0274bbc21be4ae1982698bb6aa81eb745a8bd3371df9341"
+   ]
+  },
+  {
+   "idx": 80,
+   "salt": "ea6b0100f29d99f87b89eabe29b4157d88969ae3c8e22fc11c7216e00d4606df",
+   "answer": 1300,
+   "question": "Eliza's rate per hour for the first 40 hours she works each week is $25. She also receives an overtime pay of 1.2 times her regular hourly rate. If Eliza worked for 50 hours this week, how much are her earnings for this week?",
+   "response": "{\"id\":\"mock-c6a9380f-80\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 80.)\\nWorking...\\nANSWER: 1300\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":57,\"completion_tokens\":20}}",
+   "signature": "0x6a162bdb4e529d86c64654369eb8a70446b66f8282bdfd33bb42fbe5ae75eac37d67e79c2b60297fac3e1f47aa0ddafd5c96f8835b3987f902dc777b39593a691b",
+   "grade": 1,
+   "suite_proof": [
+    "aaa9554b4b8b8832329cd5269affb40a9ac162b4273f2c962fc32abdacdf2015",
+    "6a6772990067a4feddcab5072e4be7e1dd3ff72b690b76af211d6e0df3a09fc4",
+    "8a24a6600e899d52b8026443968e0edb4f9488f17dd46c8f8db0ad1e9dfe8f7c",
+    "5e40e9fc2a9dea1e727dedb0e2cfb9df686da48f361a0854df563f61584ab1b8",
+    "ccabb80be0086d361b9ffa8807219e6901d345bd16db83b538c85b12b594e603",
+    "c74af5526e276cb4989745256f127fb9ceb26c072698ce640d816df2466d504d",
+    "c5c543d326b7a2859e18339062e9e2a1d86e5f63e3ea42cd3712efceb1c7748d"
+   ],
+   "run_proof": [
+    "5956166602ccc32ec1c9696e6b0595c3a181547389373908b1fba23bec1c92db",
+    "aa70ea462a7a6f777144b847c6a1a474c3c0cd2f6f94dfcf9fe5b94e135fd86e",
+    "46e412791d594a6834986141f160d9ccc43baf10505f76ca63826d2de99a89fe",
+    "581557c8aa21cbcee42f9dfae3c4e183462ee647ddfb59ea4bb5957a64ec46f7",
+    "8131a9a597c4a2a8ba65e29609971ba470f7b81e71ccb943117a9ad816e681ad",
+    "f1befde64e8a30fbace4fc19c25eb15976a42a6e12e362274c6826a35aa7db2a",
+    "a74efb33993e3197c74bf3295bf845768ef063347e67969c57b5e3aa5476e08c"
+   ]
+  },
+  {
+   "idx": 81,
+   "salt": "3e89d6775b4b81cb90652b6f9a471d5c960361f62de631b70ab0dbf1a2a7bf8d",
+   "answer": 2100,
+   "question": "A new program had 200 downloads in the first month. The number of downloads in the second month was 5 times as many as the downloads in the first month, but then reduced by 10% in the third month. How many downloads did the program have total over the three months?",
+   "response": "{\"id\":\"mock-c6a9380f-81\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 81.)\\nWorking...\\nANSWER: 2100\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":67,\"completion_tokens\":20}}",
+   "signature": "0x328c2f29cc73e0d7bfcbef8539c8b9c8b2093f4007780becdad5ac5c0fd31bae081fc80d16e39110ad36e8d8afa8c2664f234c599f378afc892c2b973271a6e81b",
+   "grade": 1,
+   "suite_proof": [
+    "a0ef1fac5005fc694c472c6a17d7a567ecbcf0bdd8d1e963683c5326f742d7e2",
+    "6a6772990067a4feddcab5072e4be7e1dd3ff72b690b76af211d6e0df3a09fc4",
+    "8a24a6600e899d52b8026443968e0edb4f9488f17dd46c8f8db0ad1e9dfe8f7c",
+    "5e40e9fc2a9dea1e727dedb0e2cfb9df686da48f361a0854df563f61584ab1b8",
+    "ccabb80be0086d361b9ffa8807219e6901d345bd16db83b538c85b12b594e603",
+    "c74af5526e276cb4989745256f127fb9ceb26c072698ce640d816df2466d504d",
+    "c5c543d326b7a2859e18339062e9e2a1d86e5f63e3ea42cd3712efceb1c7748d"
+   ],
+   "run_proof": [
+    "cbd53bb3ff0f7a0e5cf56078e1af1879bb319400c35b544ef38947013a024b0a",
+    "aa70ea462a7a6f777144b847c6a1a474c3c0cd2f6f94dfcf9fe5b94e135fd86e",
+    "46e412791d594a6834986141f160d9ccc43baf10505f76ca63826d2de99a89fe",
+    "581557c8aa21cbcee42f9dfae3c4e183462ee647ddfb59ea4bb5957a64ec46f7",
+    "8131a9a597c4a2a8ba65e29609971ba470f7b81e71ccb943117a9ad816e681ad",
+    "f1befde64e8a30fbace4fc19c25eb15976a42a6e12e362274c6826a35aa7db2a",
+    "a74efb33993e3197c74bf3295bf845768ef063347e67969c57b5e3aa5476e08c"
+   ]
+  },
+  {
+   "idx": 84,
+   "salt": "2d383e56ed107f10c7a3e3eedd6c0b1aa7f2a7feed37db74c2ad3d6a13666370",
+   "answer": 7,
+   "question": "Claire makes a 4 egg omelet every morning for breakfast.  How many dozens of eggs will she eat in 3 weeks?",
+   "response": "{\"id\":\"mock-c6a9380f-84\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 84.)\\nWorking...\\nANSWER: 16\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":27,\"completion_tokens\":20}}",
+   "signature": "0x43e4588b1cd19e882742511680d86150a1aefd952b48d707d207151c1b2318097ff991efaa04c1fb74ff81202c3ffe9fd1c6227b877f22928f54f7eb16d819a41b",
+   "grade": 1,
+   "suite_proof": [
+    "e83b1d5892a4c41c6cb349597b660dffcb39bc55190ed559f23f95bee65aadbb",
+    "73b929df9c5cddd65bf43a5a795d1db554b15bbe9fe98352d4ef959fd4f093e2",
+    "c5c8c8b98b870b32d9340a5b77112fd1eda8068a98a9ef7e7b12613f1b2738f7",
+    "5e40e9fc2a9dea1e727dedb0e2cfb9df686da48f361a0854df563f61584ab1b8",
+    "ccabb80be0086d361b9ffa8807219e6901d345bd16db83b538c85b12b594e603",
+    "c74af5526e276cb4989745256f127fb9ceb26c072698ce640d816df2466d504d",
+    "c5c543d326b7a2859e18339062e9e2a1d86e5f63e3ea42cd3712efceb1c7748d"
+   ],
+   "run_proof": [
+    "b015798ffb273cecf9565497a01ef58584845d3bbb1e7872a3c7fd8e7054c63f",
+    "805542c3b7f38196e9a6a0a3a2579a7a6d48768ef0c04ef3384a4ef1f84e97b5",
+    "442db75003c06fb740e0fbdbb44f28510a7984e33adeab926d1c64531112cdaf",
+    "581557c8aa21cbcee42f9dfae3c4e183462ee647ddfb59ea4bb5957a64ec46f7",
+    "8131a9a597c4a2a8ba65e29609971ba470f7b81e71ccb943117a9ad816e681ad",
+    "f1befde64e8a30fbace4fc19c25eb15976a42a6e12e362274c6826a35aa7db2a",
+    "a74efb33993e3197c74bf3295bf845768ef063347e67969c57b5e3aa5476e08c"
+   ]
+  },
+  {
+   "idx": 87,
+   "salt": "0d9c55431132cc6050faea1ecc3fe26bfd1d71dafadfec9e9d25d341e94e2900",
+   "answer": 18,
+   "question": "A candle melts by 2 centimeters every hour that it burns. How many centimeters shorter will a candle be after burning from 1:00 PM to 10:00 PM?",
+   "response": "{\"id\":\"mock-c6a9380f-87\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 87.)\\nWorking...\\nANSWER: 25\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":36,\"completion_tokens\":20}}",
+   "signature": "0x6896aa4a04e1b9cb4fdcc1e4a5df2c2eb8c8f974b025eb2727b9e3588a8eed426c397417e3eab71ec1c6a57fda3a9196fcf9403f385ac3e39ad7082c632ffefb1b",
+   "grade": 1,
+   "suite_proof": [
+    "50b0dab3498962fb361fa14d59e18576de30e09c4f63e87d06febe71057073dc",
+    "c05754c6cfd01a058cd7dba54a4f8e983fa638609c4472ebc14f75b8305d7972",
+    "c5c8c8b98b870b32d9340a5b77112fd1eda8068a98a9ef7e7b12613f1b2738f7",
+    "5e40e9fc2a9dea1e727dedb0e2cfb9df686da48f361a0854df563f61584ab1b8",
+    "ccabb80be0086d361b9ffa8807219e6901d345bd16db83b538c85b12b594e603",
+    "c74af5526e276cb4989745256f127fb9ceb26c072698ce640d816df2466d504d",
+    "c5c543d326b7a2859e18339062e9e2a1d86e5f63e3ea42cd3712efceb1c7748d"
+   ],
+   "run_proof": [
+    "918aed76df4ed79d4de9aa45c4f576996a019bfd6d4ec88e5b76341c367bd53e",
+    "7cfb2d010fb40102f816e7aac3aa82ae0900c81657c98de3778ae5e8bdf4f2ff",
+    "442db75003c06fb740e0fbdbb44f28510a7984e33adeab926d1c64531112cdaf",
+    "581557c8aa21cbcee42f9dfae3c4e183462ee647ddfb59ea4bb5957a64ec46f7",
+    "8131a9a597c4a2a8ba65e29609971ba470f7b81e71ccb943117a9ad816e681ad",
+    "f1befde64e8a30fbace4fc19c25eb15976a42a6e12e362274c6826a35aa7db2a",
+    "a74efb33993e3197c74bf3295bf845768ef063347e67969c57b5e3aa5476e08c"
+   ]
+  },
+  {
+   "idx": 89,
+   "salt": "cdf5c3ae80834bc579257bdebda97868b62ada9c6536e2a3b7671599fd414cb8",
+   "answer": 15,
+   "question": "Cynthia eats one serving of ice cream every night.  She buys cartons of ice cream with 15 servings of ice cream per carton at a cost of $5.00 per carton.  After 45 days, how much will she spend on ice cream?",
+   "response": "{\"id\":\"mock-c6a9380f-89\",\"object\":\"chat.completion\",\"created\":0,\"model\":\"mock/DEV-ONLY-not-a-TEE\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"(DEV-ONLY simulated model output for item 89.)\\nWorking...\\nANSWER: 15\"},\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":52,\"completion_tokens\":20}}",
+   "signature": "0xa8f1929558b5a4d2cf727e4465aae9f3ed2ca311053f0ca70264496e426895706c4092b85bdc31c5b8803413022727c4a1d8bac3ed160f8f2aedb27106a298911c",
+   "grade": 1,
+   "suite_proof": [
+    "7597e6e8386e04fb92a78ee7dbfc66a0a173de84f6cfe9c848182514ab9d8479",
+    "51d98ca81fd40292d3aeae4631fee85952c4387e39305c087895bbd9745133cb",
+    "ba686c631a3d40fda5ba323c09a41aee1d3cb7bec96f9cb61bc0cfc994b26d92",
+    "4f888c10be7348c818fd8ff9e866404de0399c91c0e81ba08935d981c0ffcb29",
+    "ccabb80be0086d361b9ffa8807219e6901d345bd16db83b538c85b12b594e603",
+    "c74af5526e276cb4989745256f127fb9ceb26c072698ce640d816df2466d504d",
+    "c5c543d326b7a2859e18339062e9e2a1d86e5f63e3ea42cd3712efceb1c7748d"
+   ],
+   "run_proof": [
+    "67e0d6920e3fcdbf3bb72bc02e051cd88b8fa904ac09ddeaeabd0eedac786e6b",
+    "bb1a724d83c7f172cfebaa7f1ab6c3bfdaa1d404ac61d6e6dc7c671e3c34c05c",
+    "61c8e041f258fd6220aa66a38a2fa9852cce2a4e89573306fe8a556a3b4eecf3",
+    "c98187dc31c764e3e93979623ccec894c6579a187f4e0854b36f197da8176f85",
+    "8131a9a597c4a2a8ba65e29609971ba470f7b81e71ccb943117a9ad816e681ad",
+    "f1befde64e8a30fbace4fc19c25eb15976a42a6e12e362274c6826a35aa7db2a",
+    "a74efb33993e3197c74bf3295bf845768ef063347e67969c57b5e3aa5476e08c"
+   ]
+  }
+ ],
+ "txs": [
+  {
+   "tx": "HDJGCXKGsc6f6wfhRbEpe8hBKrtCRihihZtqBKzvTtmF",
+   "explorer": "https://testnet.nearblocks.io/txns/HDJGCXKGsc6f6wfhRbEpe8hBKrtCRihihZtqBKzvTtmF",
+   "status": "Failed"
+  }
+ ]
+}
