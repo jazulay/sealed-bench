@@ -14,7 +14,8 @@ Times in America/Chicago (CT).
   - The draw was called by a non-owner account. Reveal gas is about 7.9 Tgas per 5 items.
   - (demo-mock-cheat-v1 happened to have no wrong answers, so it AUDITED honestly; it's left on chain.)
 - 2:24 PM CT: Added CLI (gen, attest, pin-signer, commit-suite, start-run, infer, commit-run, draw, reveal, status, verify, tamper, export-web), static page web/index.html, README, LICENSE, docs/debate. `npm run verify` passes, `npm run tamper` rejects 9/9 lies, and `npm test` passes 6/6.
-- GitHub: `gh auth status` says not logged in, so the repo isn't created or pushed. Local commits only.
+- GitHub: the box gh is not logged in, so the Mac mini relays pushes (scripts/push-via-mac.md).
+- 2:50 PM CT: Published https://github.com/jazulay/sealed-bench (public, MIT detected, topics near/nearhackathon/tee/ai-benchmark). Author: Joseph Azulay <35465299+jazulay@users.noreply.github.com>. gitleaks: no leaks (public attestation reports allowlisted).
 
 ## Blocked on the NEAR AI key (NEARAI_API_KEY via secret card)
 1. Byte-exact spike: one real completion, then signature, then on-chain `check_reveal` passes. Confirm the Builders key supports /v1/signature with provider_tee.
@@ -24,4 +25,4 @@ Times in America/Chicago (CT).
 ## Next (to Fri Nov 13 noon CT)
 - Thu AM: spike, then real runs once the key arrives. Point `npm run verify` default at fixtures/real/ and keep demo/ as the rehearsal.
 - Thu PM: README numbers from the real runs, page refresh, demo video script, and an X post draft (Yossi posts).
-- Thu night/Fri AM: GitHub repo (needs gh auth), final review, then Yossi submits.
+- Thu night/Fri AM: final review, then Yossi submits.
