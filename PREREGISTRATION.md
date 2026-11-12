@@ -1,8 +1,8 @@
 # Pre-registration: the competition-math gap (written before any v2 inference)
 
-Written Thu Nov 12, 2026, about 5:00 PM CT. That is before the `aime-*` suites were committed on-chain, and
+Written Thu Nov 12, 2026, at 4:54 PM CT. That is before the `aime-*` suites were committed on-chain, and
 before any inference for them on contract v2. The git commit that adds this file is the timestamp. The only
-earlier model output on these problems was a 7-call probe of the public originals, used to size `max_tokens`
+earlier model output on these problems was a small probe of 5 public originals, used to size `max_tokens`
 and the cost. It is described below.
 
 ## Why
@@ -61,6 +61,9 @@ training data, the models should do better on them than on fresh numeric variant
 - With 25 originals, the interval will be wide.
 - Owner-run inference: the owner could re-roll and keep the best responses. The protocol does not prevent this; the
   per-run nonce only rules out responses made *before* the run. This pre-registration commits us to one attempt.
-- **Probe:** before writing this, 7 calls on public originals sized the budget. GLM got 5/5 (bases, aya, gridpaths,
-  rootprod, beautiful). Qwen got bases right twice and gridpaths right once, and hit `max_tokens: 4096` on beautiful.
-  One earlier Qwen batch at `max_tokens: 8192` hit a client timeout before it returned.
+- **Probe:** before writing this, a probe on 5 public originals (bases, aya, gridpaths, rootprod, beautiful) sized the
+  budget, with a slightly different system prompt.
+  - GLM got 5/5.
+  - Qwen's first batch of 5 at `max_tokens: 8192` hit a client timeout and returned nothing.
+  - At 4096, Qwen got bases and gridpaths right and was cut off on beautiful.
+  - Qwen runs at about 8–16 tokens/s, so 4096 tokens is the budget we can afford (under $1 for all runs).
