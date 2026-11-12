@@ -144,8 +144,8 @@ async function runHero(d: Data) {
     setPhase(0); cap.textContent = `committing ${s.n} entries`;
     log(`<span class="k">commit_suite</span> ${esc(s.suite_id)} n=${s.n} k=${s.k}`);
     log(`  root <span class="w">${short(s.root, 16, 8)}</span>`);
-    for (let i = 0; i < n && alive(); i += 4) { for (let j = i; j < i + 4 && j < n; j++) els[j].classList.add("sealed"); await sleep(14); }
-    await sleep(350);
+    for (let i = 0; i < n && alive(); i += 4) { for (let j = i; j < i + 4 && j < n; j++) els[j].classList.add("sealed"); await sleep(14); if (!alive()) return; }
+    await sleep(350); if (!alive()) return;
     log(`<span class="k">start_run</span> ${esc(modelLabel(r.model))} nonce ${short(r.nonce, 10, 4)}`);
     log(`<span class="k">commit_run</span> grades ${esc(grades.slice(0, 14))}… score <span class="w">${r.score}/${s.n}</span>`);
     els.forEach((c, i) => grades[i] === "0" && c.classList.add("miss"));
@@ -153,26 +153,27 @@ async function runHero(d: Data) {
     await sleep(1300); if (!alive()) return;
     setPhase(1); cap.textContent = `random_seed @ #${fmt(s.draw_height)} → ${ch.length} of ${s.n}`;
     board.classList.remove("scan"); void board.offsetWidth; board.classList.add("scan");
-    await sleep(700);
+    await sleep(700); if (!alive()) return;
     log(`<span class="k">draw_challenge</span> @ block #${fmt(s.draw_height)}`);
     log(`  random_seed <span class="w">${short(s.draw_seed, 16, 6)}</span>`);
-    for (const i of ch) { if (!alive()) return; els[i]?.classList.add("drawn"); await sleep(70); }
+    if (s.drawn_by) log(`  called by <span class="w">${esc(s.drawn_by)}</span>`);
+    for (const i of ch) { if (!alive()) return; els[i]?.classList.add("drawn"); await sleep(70); if (!alive()) return; }
     log(`  → [${ch.slice(0, 8).join(", ")}, …] ${ch.length} of ${s.n}`);
     await sleep(1300); if (!alive()) return;
     setPhase(2); cap.textContent = `${ch.length} entries revealed in ${Math.ceil(ch.length / 5)} transactions`;
     cells.classList.add("dim");
-    for (let b = 0; b < ch.length; b += 5) { const t = r.reveal_txs?.[b / 5]; log(`<span class="k">reveal</span> entries ${ch.slice(b, b + 5).join(",")} ${t ? `· tx ${t.tx.slice(0, 8)}…` : ""}`); await sleep(380); }
+    for (let b = 0; b < ch.length; b += 5) { const t = r.reveal_txs?.[b / 5]; log(`<span class="k">reveal</span> entries ${ch.slice(b, b + 5).join(",")} ${t ? `· tx ${t.tx.slice(0, 8)}…` : ""}`); await sleep(380); if (!alive()) return; }
     await sleep(500); if (!alive()) return;
     setPhase(3); cap.textContent = `ecrecover → ${short(sig, 6, 4)}, re-grade`;
     for (const [j, i] of ch.entries()) {
       if (!alive()) return;
       els[i]?.classList.remove("drawn"); els[i]?.classList.add("ok");
       if (j % 4 === 0) { const e = ents.get(i); log(`  #${i} ecrecover → <span class="w">${short(sig, 6, 4)}</span> <span class="g">✓</span>${e ? ` answer ${e.model_answer}` : ""}`); }
-      await sleep(95);
+      await sleep(95); if (!alive()) return;
     }
     log(`<span class="g">status AUDITED · ${r.revealed.length}/${s.k} verified</span>`);
     verdict.classList.add("on"); cap.textContent = `${r.score}/${s.n} · ${r.revealed.length} of ${s.k} drawn entries passed`;
-    await sleep(4200);
+    await sleep(4200); if (!alive()) return;
   }
 }
 
