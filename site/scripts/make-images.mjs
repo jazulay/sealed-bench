@@ -27,8 +27,8 @@ p{margin-top:28px;font-size:25px;color:#8b939d;letter-spacing:-.01em}
 .grid i{width:22px;height:22px;border-radius:5px;background:rgba(165,180,255,.14);border:1px solid rgba(165,180,255,.2)}
 .grid i.on{background:#00ec97;border-color:#00ec97;box-shadow:0 0 14px rgba(0,236,151,.6)}
 </style></head><body><div class="glow"></div><div class="g"></div><div class="grid">${cells}</div>
-<div class="c"><div class="b">${seal}Sealed Bench</div><h1>Keep the test <em>secret.</em><br>Prove the <em>score.</em></h1>
-<p>Private AI benchmarks, publicly audited on NEAR.</p><div class="m"><b>●</b> TEE signatures checked on-chain with ecrecover · built at NEAR HACKATHON 2026</div></div></body></html>`;
+<div class="c"><div class="b">${seal}Sealed Bench</div><h1>Keep the test <em>secret.</em><br>Audit the <em>score.</em></h1>
+<p>Sampled, on-chain audits of private AI benchmarks on NEAR.</p><div class="m"><b>●</b> TEE signatures checked on-chain with ecrecover · built at NEAR HACKATHON 2026</div></div></body></html>`;
 const b = await chromium.launch({ executablePath: process.env.CHROME ?? "/usr/bin/google-chrome", args: ["--no-sandbox"] });
 const p = await b.newPage({ viewport: { width: 1200, height: 630 } });
 await p.setContent(og); await p.waitForTimeout(300); await p.screenshot({ path: "public/og.png" });

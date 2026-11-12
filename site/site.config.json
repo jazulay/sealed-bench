@@ -1,0 +1,7 @@
+{
+  "contractId": "sealedbench-hk26.testnet",
+  "network": "testnet",
+  "explorer": "https://testnet.nearblocks.io",
+  "rpcs": ["https://rpc.testnet.fastnear.com", "https://rpc.testnet.near.org", "https://test.rpc.fastnear.com"],
+  "github": "https://github.com/jazulay/sealed-bench"
+}

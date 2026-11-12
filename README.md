@@ -2,6 +2,8 @@
 
 Sealed Bench runs sampled on-chain audits for private AI evaluations on NEAR.
 
+**Live site and audit explorer: https://sealed-bench.up.railway.app** (reads the testnet contract in your browser over public RPC; no keys, no backend).
+
 **Problem.** Public benchmarks leak into training data, so a high score on one can mean the model memorized it. A private test set avoids the leak, but then nobody can check the score. Sealed Bench lets an owner keep the test set private and still have the score audited publicly:
 
 1. The owner commits the sealed test set on NEAR.
@@ -113,13 +115,20 @@ Requirements: Node ≥ 22.18 (it runs the TypeScript directly) and network acces
 4. **See a real on-chain FAILED.** Run `npm run verify -- --dir fixtures/demo-fail`.
    → You should see `"ok": false`, `"all_reveals_pass_offline": false`, and `"onchain_status": "Failed"`. The owner claimed 100/100, and the contract stored `re-grade mismatch: model answered … key 24, committed grade 1` permanently.
 
-5. **Open the results page.** Open `web/index.html` in a browser (it is static, with no server); run `npm run web` first to refresh `web/data.js` from fixtures and chain.
+5. **Open the live site.** Go to https://sealed-bench.up.railway.app.
+   → You should see a green `Live · #<block>` badge in the top bar, meaning the page is reading `sealedbench-hk26.testnet` over public NEAR RPC. If RPC is down, the badge says `Snapshot` and a yellow banner shows when the saved state was exported.
+   - Under **Live audits**, pick `gsm-sealed-v1` and `glm-5.3-flash`. You should see `98 / 100`, `AUDITED`, the contract's `get_audit` claim verbatim, and a 100-cell grade vector with 2 red (wrong) cells, neither of them among the 20 sampled.
+   - Press **Re-verify all 20 on NEAR**. Each entry runs the contract's free `check_reveal` view, and you should see `20/20 re-verified on NEAR`, with the recovered signer `0x3b753b44…fa0c` for every entry.
+   - Under **Try to cheat**, submit **Honest reveal**: you should see `ACCEPTED · ALL CHECKS PASSED`. Submit any other option, or edit the response text: you should see `REJECTED BY THE CONTRACT` with the contract's reason.
+   - The site source is in [`site/`](site/).
+
+6. **Open the static results page.** Open `web/index.html` in a browser (it is static, with no server); run `npm run web` first to refresh `web/data.js` from fixtures and chain.
    → You should see:
    - the public-to-sealed gap table (Qwen 100.0% vs 100.0%; GLM 100.0% vs 98.0%);
    - two real suite cards with four AUDITED runs, each listing its revealed items with the recovered NEAR AI signer and an explorer link for every reveal transaction;
    - a separate "Protocol rehearsal (DEV-ONLY mock signer)" section with the three mock suites, including the FAILED cheat.
 
-6. **Check that NEAR AI's TEE signer is genuine (no key).** Run `node cli/src/cli.ts attest --model Qwen/Qwen3.8-27B`.
+7. **Check that NEAR AI's TEE signer is genuine (no key).** Run `node cli/src/cli.ts attest --model Qwen/Qwen3.8-27B`.
    → You should see `"signing_address": "0x835ab53d…aa26"` and these checks:
    - `"dcap_tcb_status": "UpToDate"`
    - `report_data_binds_signer_and_nonce: ok`
@@ -129,20 +138,20 @@ Requirements: Node ≥ 22.18 (it runs the TypeScript directly) and network acces
    The report bytes are saved to `fixtures/attestation/`; that file's sha256 is the `attestation_sha256` pinned on-chain, which you can confirm with `near contract call-function as-read-only sealedbench-hk26.testnet get_signers json-args '{"model":"Qwen/Qwen3.8-27B"}' network-config testnet now`.
    The signer address can change if NEAR AI rotates keys, and the pinned snapshot is in `fixtures/attestation/*.report.raw.json`.
 
-7. **Regenerate the demo suite from its published seed.** Run `node cli/src/cli.ts gen --suite demo-mock-sealed-v1 --seed 6ab8130a44e0c527100a75bf383df99d9282f6f5518f9556a9dc528646ee8a18 --dir /tmp/sb`, using the seed from [`fixtures/demo/SEED.md`](fixtures/demo/SEED.md).
+8. **Regenerate the demo suite from its published seed.** Run `node cli/src/cli.ts gen --suite demo-mock-sealed-v1 --seed 6ab8130a44e0c527100a75bf383df99d9282f6f5518f9556a9dc528646ee8a18 --dir /tmp/sb`, using the seed from [`fixtures/demo/SEED.md`](fixtures/demo/SEED.md).
    → You should see `"root": "2445da5762846ec77ba1c90c4c310ef18bb81e4756f227299dbb1fa032e9dfcb"`, which is the same root as `get_suite` on-chain. Real sealed suites use a random secret seed instead.
 
-8. **Run the contract unit tests.** Run `cd contract && cargo test`; it needs Rust 1.99, pinned in `rust-toolchain.toml`.
+9. **Run the contract unit tests.** Run `cd contract && cargo test`; it needs Rust 1.99, pinned in `rust-toolchain.toml`.
    → You should see `test result: ok. 30 passed`. The tests include:
    - an ethers.js-generated EIP-191 vector recovered with `env::ecrecover`;
    - **two real NEAR AI Cloud signature vectors** (`fixtures/spike/`) recovered to the pinned Qwen and GLM signers;
    - content-only answer extraction;
    - k256-signed lifecycle tests: honest → AUDITED with the bond returned, tampered response, question, or answer → FAILED, a wrong signer, inflated grades, a stale nonce, a draw that comes too early, an uncommitted run, a deadline timeout, and `expire`.
 
-9. **Run the CLI unit tests.** Run `npm test`.
+10. **Run the CLI unit tests.** Run `npm test`.
    → You should see `pass 7`. These check that the JS mirror of the contract matches: the same EIP-191 vector, Merkle proofs for odd sizes, answer extraction (including content-only grading), and all 25 templates yielding positive integer answers over 200 seeds.
 
-10. **Rehearse the whole protocol on your own testnet accounts (optional, free).**
+11. **Rehearse the whole protocol on your own testnet accounts (optional, free).**
     1. Create two accounts with the faucet: `near account create-account sponsor-by-faucet-service <you>.testnet autogenerate-new-keypair save-to-legacy-keychain network-config testnet create`.
     2. Deploy `contract/target/near/sealed_bench.wasm` with `new {"admin":"<you>.testnet"}`.
     3. Run the following:
@@ -160,7 +169,7 @@ Requirements: Node ≥ 22.18 (it runs the TypeScript directly) and network acces
     ```
     → Every command prints a JSON object with `tx` and `explorer` links. `status` shows `"status": "Audited"`. Add `--cheat-inflate` to `commit-run` and `reveal` returns `"status": "Failed"`.
 
-11. **Live inference (requires a NEAR AI Cloud key, owner only).** Run `NEARAI_API_KEY=… node cli/src/cli.ts infer --suite <s> --model Qwen/Qwen3.8-27B --concurrency 5`, which is how the real runs were made. It:
+12. **Live inference (requires a NEAR AI Cloud key, owner only).** Run `NEARAI_API_KEY=… node cli/src/cli.ts infer --suite <s> --model Qwen/Qwen3.8-27B --concurrency 5`, which is how the real runs were made. It:
     - checks the request bytes against the contract's `build_request_for` view before spending anything;
     - posts the exact bytes with `x-no-aliasing: true` and `Accept-Encoding: identity`;
     - keeps the raw response bytes;

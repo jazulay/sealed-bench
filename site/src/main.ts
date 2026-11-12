@@ -5,7 +5,7 @@ import "./style.css";
 import { view, tx, acct, CONTRACT, ContractError } from "./near";
 
 /* ---------- types ---------- */
-type Entry = { idx: number; question: string; answer: number; grade: number; content: string; model_answer: number | null; signature: string };
+type Entry = { idx: number; question: string; answer: number; grade: number; content: string; model_answer: number | string | null; signature: string };
 type Run = { model: string; status: string; score: number | null; grades: string | null; nonce: string; run_root: string | null; revealed: number[]; sample_correct: number; fail_reason: string | null; claim: string; reveal_file?: string; reveal_txs?: { tx: string; status: string }[]; entries?: Entry[] };
 type Suite = { suite_id: string; kind: "real" | "rehearsal"; owner: string; note: string; root: string; n: number; k: number; challenge: number[] | null; draw_height: number | null; draw_seed: string | null; drawn_by: string | null; reveal_deadline: number | null; lifecycle?: { commit_suite?: string; draw?: string; runs?: Record<string, { start: string; commit: string }> }; runs: Run[] };
 type Pin = { address: string; attestation_sha256: string; pinned_height: number; note: string };
@@ -24,7 +24,8 @@ const fmt = (n: number | null | undefined) => (n == null ? "–" : n.toLocaleStr
 const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const CHEV = `<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const PIN_TX: Record<string, string> = {
+// Pin transactions on the v1 testnet contract; other contracts fall back to the contract page.
+const PIN_TX: Record<string, string> = CONTRACT !== "sealedbench-hk26.testnet" ? {} : {
   "0x835ab53d20294ef795906dff21ae4c045336aa26": "ArAfm58NWkrdjWPXvfBJ2PqWKGnucpsVcGKVPoaavN72",
   "0x3b753b4406613c5e70ae640508632b600424fa0c": "BGQ1Yy99GdxQbN3A5cbVirmoHKUoYCL685hb4ikk473S",
   "0xa6c3a19d7bdf8743396362411554a92f74fe9fa3": "F1AidK6P6qZaCsfK1AYtxbKgpj1fzJLXn51nVB8XX7go",
@@ -174,9 +175,9 @@ function renderSteps(d: Data) {
   const sig = d.signers[r.model]?.[0]?.address;
   const steps = [
     { h: "Commit", p: "The owner seals the test set as a salted Merkle root, then commits each model's full run: a Merkle root over every signed response and the complete grade vector. The contract sums the score itself.", c: [`<span class="c">commit_suite</span> ${esc(s.suite_id)}`, `root ${short(s.root, 12, 6)}`, `<span class="c">commit_run</span> score ${r.score}/${s.n}`, link(lc.commit_suite, "commit_suite")] },
-    { h: "Draw", p: "Only after every run is committed can anyone call the draw. NEAR's random_seed picks one shared sample of entries that every run must open.", c: [`<span class="c">draw_challenge</span> #${fmt(s.draw_height)}`, `seed ${short(s.draw_seed, 12, 6)}`, `[${(s.challenge ?? []).slice(0, 6).join(", ")}, …]`, link(lc.draw, "draw")] },
+    { h: "Draw", p: "Once every run is committed, the draw is permissionless: anyone can trigger it. NEAR's random_seed picks one shared sample of entries that every run must open.", c: [`<span class="c">draw_challenge</span> #${fmt(s.draw_height)}`, `seed ${short(s.draw_seed, 12, 6)}`, `called by ${esc(s.drawn_by ?? "–")}`, link(lc.draw, "draw")] },
     { h: "Reveal", p: "The owner opens exactly those entries: question, salt, answer key, raw response bytes, TEE signature and both Merkle proofs. Miss the deadline and the run fails.", c: [`<span class="c">reveal</span> ${r.revealed.length} entries`, `in ${r.reveal_txs?.length ?? 4} batches`, r.reveal_txs?.[0] ? link(r.reveal_txs[0].tx, "first reveal") : "", ""] },
-    { h: "Verify", p: "For each entry the contract rebuilds the request, hashes both sides, recovers the NEAR AI TEE signer with ecrecover and re-grades the raw answer. Then AUDITED or FAILED, forever.", c: [`<span class="c">ecrecover</span> → ${short(sig, 8, 4)}`, `pinned signer ✓`, `status <span style="color:var(--ok)">${esc(r.status.toUpperCase())}</span>`, ""] },
+    { h: "Verify", p: "For each entry the contract rebuilds the request, hashes both sides, recovers the NEAR AI TEE signer with ecrecover and re-grades the raw answer. The run settles as AUDITED or FAILED.", c: [`<span class="c">ecrecover</span> → ${short(sig, 8, 4)}`, `pinned signer ✓`, `status <span style="color:var(--ok)">${esc(r.status.toUpperCase())}</span>`, ""] },
   ];
   $("#steps").innerHTML = steps.map((x, i) => `<article class="step"><span class="step-n">0${i + 1}</span><h3>${x.h}</h3><p>${x.p}</p><div class="tx">${x.c.filter(Boolean).map((l) => `<div>${l}</div>`).join("")}</div></article>`).join("");
 }
@@ -238,7 +239,7 @@ function renderRun() {
       <div>
         <div class="score">${r.score ?? "–"}<small>/ ${s.n}</small></div>
         <div class="score-sub"><span class="pill ${esc(r.status)}">${esc(r.status)}</span>&nbsp; ${esc(r.model)}</div>
-        <blockquote class="claim ${esc(r.status)}">${esc(r.claim)}<cite>— get_audit, verbatim from the contract</cite></blockquote>
+        <blockquote class="claim ${esc(r.status)}">${esc(r.claim)}<cite>— get_audit, verbatim · ${DATA.source === "live" ? `live view, block #${fmt(DATA.block_height)}` : `saved snapshot, block #${fmt(DATA.block_height)}`}</cite></blockquote>
         <dl class="kv">
           <dt>Suite root</dt><dd title="${esc(s.root)}">${esc(short(s.root, 14, 8))}</dd>
           <dt>Run root</dt><dd title="${esc(r.run_root ?? "")}">${esc(short(r.run_root, 14, 8))}</dd>
@@ -256,7 +257,7 @@ function renderRun() {
       </div>
     </div>
     <div class="ent-head">
-      <h3>Sampled entries <span class="mut" style="font-weight:400">· ${sampled.length} drawn by the chain</span></h3>
+      <h3>Sampled entries <span class="mut" style="font-weight:400">· ${sampled.length} drawn · ${r.revealed.length} accepted on-chain · text from published fixtures</span></h3>
       <div class="row-act">
         <span class="prog" id="prog" aria-live="polite">${verifiedCount ? `${verifiedCount}/${sampled.length} re-verified on NEAR` : ""}</span>
         ${r.reveal_file ? `<button class="btn btn-ok btn-sm" type="button" id="verify-all">Re-verify all ${sampled.length} on NEAR</button>` : ""}
@@ -264,7 +265,7 @@ function renderRun() {
     </div>
     <div class="ents">${sampled.map((i) => {
       const e = ents.get(i), c = checks.get(key(s.suite_id, r.model, i));
-      const vs = c === "pending" ? `<span class="vs">checking…</span>` : c && "ok" in c ? `<span class="vs ${c.ok ? "ok" : "bad"}">${c.ok ? "verified" : "rejected"}</span>` : c ? `<span class="vs bad">error</span>` : `<span class="vs">${grades[i] === "1" ? "grade 1" : grades[i] === "0" ? "grade 0" : ""}</span>`;
+      const vs = c === "pending" ? `<span class="vs">checking…</span>` : c && "ok" in c ? `<span class="vs ${c.ok ? "ok" : "bad"}">${c.ok ? "verified" : "rejected"}</span>` : c ? `<span class="vs bad">error</span>` : `<span class="vs">${r.revealed.includes(i) ? "accepted" : "not accepted"}</span>`;
       return `<div class="ent" data-i="${i}" data-open="false">
         <button type="button" aria-expanded="false" aria-controls="eb-${i}"><span class="ix">#${i}</span><span class="q">${esc(e?.question ?? "Entry revealed on-chain; payload not in this site's fixtures")}</span><span class="n">key <b>${e ? esc(e.answer) : "–"}</b></span><span class="n">model <b>${e?.model_answer ?? "–"}</b></span>${vs}${CHEV}</button>
         <div class="ent-body" id="eb-${i}"><div><div class="ent-in">${e ? entryBody(s, r, e, c) : `<p class="fine">This site has no reveal payload for this entry.</p>`}</div></div></div></div>`;
@@ -383,7 +384,7 @@ const PRESETS: Preset[] = [
   { id: "question", t: "Swap the question", d: "Reveal an easier question than the sealed one.", f: (_b, all) => ({ question: all[1].question }) },
   { id: "borrow", t: "Borrow another signature", d: "Reuse a genuine NEAR AI signature from a different entry.", f: (_b, all) => ({ signature: all[1].signature }) },
   { id: "forge", t: "Forge a signature", d: "Sign it yourself with a key that isn't the TEE's.", f: () => ({ signature: "0x" + [...crypto.getRandomValues(new Uint8Array(64))].map((x) => x.toString(16).padStart(2, "0")).join("") + "1b" }) },
-  { id: "undrawn", t: "Reveal an undrawn entry", d: "Open a different entry than the chain picked.", f: (b, _all, ch) => { let i = 0; while (ch.includes(i)) i++; return { idx: i }; } },
+  { id: "undrawn", t: "Relabel the entry", d: "Claim this answer belongs to an entry the draw didn't pick.", f: (b, _all, ch) => { let i = 0; while (ch.includes(i)) i++; return { idx: i }; } },
 ];
 function bumpAnswer(content: string) {
   const m = [...content.matchAll(/ANSWER:\s*(-?\d+)/g)].pop();
@@ -484,6 +485,9 @@ function setupOdds() {
 
 /* ---------- misc ---------- */
 function setupChrome() {
+  const mb = $<HTMLButtonElement>("#menu-btn"), links = $("#nav-links");
+  mb.onclick = () => { const open = mb.getAttribute("aria-expanded") !== "true"; mb.setAttribute("aria-expanded", String(open)); links.classList.toggle("open", open); };
+  $$("a", links).forEach((a) => a.addEventListener("click", () => { mb.setAttribute("aria-expanded", "false"); links.classList.remove("open"); }));
   const nav = $("#nav"); const onS = () => nav.classList.toggle("scrolled", scrollY > 8); addEventListener("scroll", onS, { passive: true }); onS();
   $$<HTMLButtonElement>(".copy").forEach((b) => (b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.copy!); b.textContent = "Copied ✓"; b.classList.add("done"); setTimeout(() => { b.textContent = "Copy all"; b.classList.remove("done"); }, 1800); } catch { b.textContent = "Select and copy"; } }));
   const targets = $$(".sec .kicker, .sec .h2, .sec .lede-sm, .sec .card, .sec .sec-note, .term, .odds-card, .vlist li, .explorer, .lab, .closer-in > *");

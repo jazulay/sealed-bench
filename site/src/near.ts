@@ -1,6 +1,9 @@
-export const CONTRACT = "sealedbench-hk26.testnet";
-export const EXPLORER = "https://testnet.nearblocks.io";
-const RPCS = ["https://rpc.testnet.fastnear.com", "https://rpc.testnet.near.org", "https://test.rpc.fastnear.com"];
+// The ONE place the contract id lives: site.config.json (override at build time with CONTRACT_ID).
+import cfg from "../site.config.json";
+export const CONTRACT: string = (import.meta.env.VITE_CONTRACT_ID as string | undefined) || cfg.contractId;
+export const NETWORK: string = cfg.network;
+export const EXPLORER: string = cfg.explorer;
+const RPCS: string[] = cfg.rpcs;
 let preferred = 0;
 
 const b64 = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));

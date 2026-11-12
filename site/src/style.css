@@ -406,3 +406,15 @@ input[type=range]:hover::-webkit-slider-thumb { box-shadow: 0 0 0 7px rgba(0,236
   .board { padding: 22px 18px 64px; }
 }
 @media (max-width: 760px) { .live-dot span { max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .nav-in { gap: 12px; } .board { padding-bottom: 22px; } }
+.menu-btn { all: unset; display: none; box-sizing: border-box; cursor: pointer; width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line2); position: relative; }
+.menu-btn span { position: absolute; left: 10px; right: 10px; height: 1.5px; background: var(--fg); border-radius: 2px; transition: transform .3s var(--ease), top .3s var(--ease); }
+.menu-btn span:first-child { top: 13px; } .menu-btn span:last-child { top: 19px; }
+.menu-btn[aria-expanded="true"] span:first-child { top: 16px; transform: rotate(45deg); } .menu-btn[aria-expanded="true"] span:last-child { top: 16px; transform: rotate(-45deg); }
+.menu-btn:focus-visible { outline: 2px solid var(--ok); }
+@media (max-width: 1080px) {
+  .menu-btn { display: inline-block; }
+  .nav-links.open { display: grid; position: absolute; top: 64px; left: 0; right: 0; margin: 0; padding: 10px 16px 16px; background: rgba(5,6,7,.96); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); gap: 2px; }
+  .nav-links.open a { padding: 12px 10px; font-size: 16px; color: var(--fg2); }
+  .nav-in { position: relative; }
+}
+.nav-right .menu-btn { order: 3; }

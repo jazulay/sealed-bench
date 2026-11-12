@@ -7,8 +7,9 @@ import { join, resolve } from "node:path";
 const root = resolve(process.argv[2] ?? "..");
 const out = resolve("public/data");
 mkdirSync(join(out, "reveal"), { recursive: true });
-const CONTRACT = "sealedbench-hk26.testnet";
-const RPCS = ["https://rpc.testnet.fastnear.com", "https://rpc.testnet.near.org"];
+const CFG = JSON.parse(readFileSync(resolve("site.config.json"), "utf8"));
+const CONTRACT = process.env.CONTRACT_ID || CFG.contractId;
+const RPCS = CFG.rpcs;
 
 async function view(method, args = {}) {
   let err;
@@ -26,8 +27,8 @@ async function view(method, args = {}) {
   throw err;
 }
 
-// Lifecycle txs that are not in the reveal fixtures (copied from README.md, all on testnet).
-const LIFECYCLE = {
+// Lifecycle txs that are not in the reveal fixtures (copied from README.md), keyed by contract.
+const LIFECYCLE_BY_CONTRACT = { "sealedbench-hk26.testnet": {
   "gsm-sealed-v1": { commit_suite: "3sLmbCT7k1oezuHvdx4CYtEWpWn5GJQM3ENBWs6EDqtC", draw: "7E16QVernNhChGY1vDPJByCHjUYhWJPGnMqTZtx5E1nx",
     runs: { "Qwen/Qwen3.8-27B": { start: "5viv97ALBkSuUakjLdreo1aPTehnSQrmbRkKbUjhew2V", commit: "DuYm5atLYBoffE7GPsNCxwrkD2s93tTXjh5Wgvd2GgNM" },
             "z-ai/glm-5.3-flash": { start: "Hmtcw4Fj9tezeLPd99AcXzZALPEGnwXBytC2hGz7Qnp2", commit: "2kryJioRm1a5xMCjKf7NW2QYZd5tsdQTsC8en4pUEnQc" } } },
@@ -37,10 +38,14 @@ const LIFECYCLE = {
   "demo-mock-sealed-v1": { draw: "4JBDqxxztMWd8oh3YxZ7K2gJgfEC83xL4LKUjUKaKs6e" },
   "demo-mock-public-v1": { draw: "2u6c8txuRbEHZaTRVv3jQrzmYCgrqTcWjkbVd7ZFvFEW" },
   "demo-mock-cheat-v2": { draw: "2Ddwwjxk8HLSDXjfrpeBLP2Jbc6QJNP8sFEuaFj74QEf" },
-};
+} };
+const LIFECYCLE = LIFECYCLE_BY_CONTRACT[CONTRACT] ?? {};
 
 const content = (raw) => { try { return JSON.parse(raw).choices[0].message.content ?? ""; } catch { return ""; } };
-const lastAnswer = (s) => { const m = [...String(s).matchAll(/ANSWER:\s*(-?\d+)/g)]; return m.length ? Number(m[m.length - 1][1]) : null; };
+// Use the CLI's grader (a JS mirror of the contract's) so the site shows the answer the contract would parse.
+let responseAnswer;
+try { responseAnswer = (await import(join(root, "cli/src/lib.ts"))).responseAnswer; } catch (e) { console.warn("could not load cli/src/lib.ts grader:", e.message); }
+if (typeof responseAnswer !== "function") throw new Error("cli/src/lib.ts responseAnswer is required so the site matches the contract's grader");
 const safe = (m) => m.replace(/[^A-Za-z0-9.-]+/g, "_");
 
 const files = [];
@@ -55,6 +60,7 @@ const signers = {};
 let block = 0;
 for (const { kind, j } of files) {
   const sid = j.suite.suite_id, model = j.run.model;
+  if (j.contract && j.contract !== CONTRACT) { console.warn(`skip ${sid}/${model}: fixture is for ${j.contract}`); continue; }
   if (!suites.has(sid)) {
     const { value: s, block: b } = await view("get_suite", { suite_id: sid });
     block = Math.max(block, b);
@@ -69,7 +75,7 @@ for (const { kind, j } of files) {
     model, status: run.status, score: run.score, grades: run.grades, nonce: run.nonce, run_root: run.run_root, start_height: run.start_height, commit_height: run.commit_height,
     revealed: run.revealed, sample_correct: run.sample_correct, fail_reason: run.fail_reason, claim: audit.claim,
     reveal_file: file, reveal_txs: j.txs.map((t) => ({ tx: t.tx, status: t.status })),
-    entries: j.revealed.map((it) => { const c = content(it.response); return { idx: it.idx, question: it.question, answer: it.answer, grade: it.grade, content: c, model_answer: lastAnswer(c), signature: it.signature }; }),
+    entries: j.revealed.map((it) => { const c = content(it.response); const a = responseAnswer(it.response); return { idx: it.idx, question: it.question, answer: it.answer, grade: it.grade, content: c, model_answer: a == null ? null : String(a), signature: it.signature }; }),
   });
 }
 const order = (s) => (s.kind === "real" ? 0 : 1) + (/sealed/.test(s.suite_id) ? 0 : 0.5);
