@@ -1,0 +1,25 @@
+{
+  "name": "sealed-bench-site",
+  "version": "1.0.0",
+  "description": "Sealed Bench marketing + live audit explorer",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p . && vite build",
+    "start": "node server.mjs",
+    "sync": "node scripts/sync-data.mjs ..",
+    "og": "node scripts/make-images.mjs"
+  },
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.6"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}
