@@ -49,7 +49,9 @@ if (typeof responseAnswer !== "function") throw new Error("cli/src/lib.ts respon
 const safe = (m) => m.replace(/[^A-Za-z0-9.-]+/g, "_");
 
 const files = [];
-for (const [dir, kind] of [["fixtures/real", "real"], ["fixtures/demo", "rehearsal"], ["fixtures/demo-fail", "rehearsal"]]) {
+// v1 fixtures moved to fixtures/legacy-v1/ when v2 landed; read both layouts. Fixtures for another contract are skipped below.
+const dirs = ["", "legacy-v1/"].flatMap((pre) => [[`fixtures/${pre}real`, "real"], [`fixtures/${pre}demo`, "rehearsal"], [`fixtures/${pre}demo-fail`, "rehearsal"]]);
+for (const [dir, kind] of dirs) {
   const p = join(root, dir);
   if (!existsSync(p)) continue;
   for (const f of readdirSync(p).filter((f) => f.startsWith("reveal.") && f.endsWith(".json"))) files.push({ kind, j: JSON.parse(readFileSync(join(p, f), "utf8")) });
@@ -61,6 +63,7 @@ let block = 0;
 for (const { kind, j } of files) {
   const sid = j.suite.suite_id, model = j.run.model;
   if (j.contract && j.contract !== CONTRACT) { console.warn(`skip ${sid}/${model}: fixture is for ${j.contract}`); continue; }
+  if (suites.get(sid)?.runs.some((r) => r.model === model)) continue; // same fixture in both layouts
   if (!suites.has(sid)) {
     const { value: s, block: b } = await view("get_suite", { suite_id: sid });
     block = Math.max(block, b);

@@ -19,7 +19,7 @@ const og = `<html><head><style>${css}
 .glow{position:absolute;left:-200px;top:-300px;width:1100px;height:800px;background:radial-gradient(closest-side,rgba(0,236,151,.20),rgba(80,110,255,.08) 55%,transparent 75%)}
 .c{position:absolute;inset:64px 72px;display:flex;flex-direction:column}
 .b{display:flex;align-items:center;gap:14px;font-weight:600;font-size:26px;letter-spacing:-.01em}.b svg{width:44px;height:44px}
-h1{margin-top:auto;font-weight:650;font-size:92px;line-height:.98;letter-spacing:-.05em}
+h1{margin-top:auto;font-weight:650;font-size:72px;line-height:1.02;letter-spacing:-.045em;max-width:15ch}
 em{font-family:S;font-weight:400;font-style:italic;letter-spacing:-.02em;color:#00ec97}
 p{margin-top:28px;font-size:25px;color:#8b939d;letter-spacing:-.01em}
 .m{font-family:M;font-size:17px;color:#59616b;margin-top:26px;letter-spacing:.02em}.m b{color:#00ec97;font-weight:500}
@@ -27,8 +27,8 @@ p{margin-top:28px;font-size:25px;color:#8b939d;letter-spacing:-.01em}
 .grid i{width:22px;height:22px;border-radius:5px;background:rgba(165,180,255,.14);border:1px solid rgba(165,180,255,.2)}
 .grid i.on{background:#00ec97;border-color:#00ec97;box-shadow:0 0 14px rgba(0,236,151,.6)}
 </style></head><body><div class="glow"></div><div class="g"></div><div class="grid">${cells}</div>
-<div class="c"><div class="b">${seal}Sealed Bench</div><h1>Keep the test <em>secret.</em><br>Audit the <em>score.</em></h1>
-<p>Sampled, on-chain audits of private AI benchmarks on NEAR.</p><div class="m"><b>●</b> TEE signatures checked on-chain with ecrecover · built at NEAR HACKATHON 2026</div></div></body></html>`;
+<div class="c"><div class="b">${seal}Sealed Bench</div><h1>Audit a private benchmark score by opening 20 of 100 entries.</h1>
+<p>NEAR randomness picks the entries. A contract checks each against its NEAR AI TEE signature.</p><div class="m"><b>●</b> NEAR testnet · NEAR HACKATHON 2026</div></div></body></html>`;
 const b = await chromium.launch({ executablePath: process.env.CHROME ?? "/usr/bin/google-chrome", args: ["--no-sandbox"] });
 const p = await b.newPage({ viewport: { width: 1200, height: 630 } });
 await p.setContent(og); await p.waitForTimeout(300); await p.screenshot({ path: "public/og.png" });

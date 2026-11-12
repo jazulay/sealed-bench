@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sealed Bench: keep the test secret, audit the score</title>
-<meta name="description" content="Sealed Bench runs sampled, on-chain audits of AI benchmark scores on a private test set. The set is committed on NEAR, a permissionless draw picks which answers must be opened, and each one is checked on-chain against NEAR AI Cloud's TEE signature.">
+<title>Sealed Bench: sampled on-chain audits of private AI benchmarks</title>
+<meta name="description" content="A NEAR contract commits a private test set and every graded run, then draws 20 of 100 entries with chain randomness. Each drawn entry must match its commitment and a NEAR AI TEE signature, or the run fails.">
 <meta name="theme-color" content="#050607">
 <link rel="canonical" href="%SITE_URL%/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -12,18 +12,18 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sealed Bench">
-<meta property="og:title" content="Sealed Bench: keep the test secret, audit the score">
-<meta property="og:description" content="Sampled on-chain audits of private AI benchmarks on NEAR. A permissionless random draw, NEAR AI TEE signatures checked on-chain with ecrecover. Every run ends AUDITED or FAILED.">
+<meta property="og:title" content="Sealed Bench: sampled on-chain audits of private AI benchmarks">
+<meta property="og:description" content="Commit a private test set on NEAR, draw 20 of 100 entries with chain randomness, check each against its NEAR AI TEE signature on-chain. Live on testnet.">
 <meta property="og:url" content="%SITE_URL%/">
 <meta property="og:image" content="%SITE_URL%/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Sealed Bench. Keep the test secret. Audit the score.">
+<meta property="og:image:alt" content="Sealed Bench: audit a private benchmark score by opening 20 of 100 entries">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Sealed Bench: keep the test secret, audit the score">
-<meta name="twitter:description" content="Sampled on-chain audits of private AI benchmarks on NEAR, checked against NEAR AI TEE signatures.">
+<meta name="twitter:title" content="Sealed Bench: sampled on-chain audits of private AI benchmarks">
+<meta name="twitter:description" content="Commit a private test set on NEAR, draw 20 of 100 entries with chain randomness, check each against its NEAR AI TEE signature on-chain. Live on testnet.">
 <meta name="twitter:image" content="%SITE_URL%/og.png">
-<meta name="twitter:image:alt" content="Sealed Bench. Keep the test secret. Audit the score.">
+<meta name="twitter:image:alt" content="Sealed Bench: audit a private benchmark score by opening 20 of 100 entries">
 <link rel="preconnect" href="https://rpc.testnet.fastnear.com" crossorigin>
 <link rel="preload" href="/data/snapshot.json" as="fetch" crossorigin>
 </head>
@@ -37,16 +37,16 @@
     </a>
     <nav class="nav-links" id="nav-links" aria-label="Sections">
       <a href="#protocol">Protocol</a>
-      <a href="#explorer">Live audits</a>
-      <a href="#cheat">Try to cheat</a>
-      <a href="#near">NEAR</a>
+      <a href="#explorer">Explorer</a>
+      <a href="#cheat">Tamper lab</a>
+      <a href="#odds">Odds</a>
       <a href="#trust">Threat model</a>
-      <a href="#verify">Verify</a>
+      <a href="#verify">Reproduce</a>
     </nav>
     <div class="nav-right">
       <button class="menu-btn" id="menu-btn" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="Menu"><span></span><span></span></button>
       <span class="live-dot" id="nav-live" data-state="loading"><i></i><span>Connecting</span></span>
-      <a class="btn btn-ghost btn-sm" href="%GITHUB%" rel="noopener" aria-label="Sealed Bench on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><use href="#gh"/></svg><span>GitHub</span></a>
+      <a class="btn btn-ghost btn-sm" href="%GITHUB%" rel="noopener" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><use href="#gh"/></svg><span>GitHub</span></a>
     </div>
   </div>
 </header>
@@ -55,18 +55,18 @@
 <section class="hero" id="top">
   <div class="hero-bg" aria-hidden="true"><div class="hero-grid"></div><div class="hero-glow"></div></div>
   <div class="wrap hero-in">
-    <a class="eyebrow" href="#explorer"><span class="tag">New</span> Real NEAR AI TEE runs, audited on testnet <span aria-hidden="true">→</span></a>
-    <h1 class="display">Keep the test <em>secret.</em><br>Audit the <em>score.</em></h1>
-    <p class="lede">Sealed Bench runs a sampled audit of an AI benchmark score on a private test set. The set and every graded run are committed on NEAR, a permissionless random draw picks which entries must be opened, and the contract checks each one against the NEAR AI Cloud TEE signature on its response.</p>
+    <a class="eyebrow" href="#explorer"><span class="tag">Testnet</span> 4 NEAR AI TEE runs, all AUDITED <span aria-hidden="true">→</span></a>
+    <h1 class="display display-hero">Audit a private benchmark score by opening 20 of 100 entries.</h1>
+    <p class="lede">The owner commits a Merkle root of a private test set, then each graded run, to a NEAR contract. Any account can then call the draw, and <code>random_seed</code> picks 20 of 100 entries. Each one must match its commitment, carry a pinned NEAR AI TEE signature and re-grade the same, or the run fails.</p>
     <div class="cta">
-      <a class="btn btn-primary" href="#explorer">Explore live audits</a>
-      <a class="btn btn-ghost" href="#verify">Verify it yourself</a>
+      <a class="btn btn-primary" href="#explorer">Open the explorer</a>
+      <a class="btn btn-ghost" href="#verify">Run the checks yourself</a>
     </div>
     <dl class="stats" id="stats" aria-live="polite">
       <div><dt>Real runs audited</dt><dd data-k="audited">–</dd></div>
-      <div><dt>Sampled entries verified on-chain</dt><dd data-k="verified">–</dd></div>
-      <div><dt>TEE signers pinned</dt><dd data-k="signers">–</dd></div>
-      <div><dt>Cheats caught (rehearsal)</dt><dd data-k="caught">–</dd></div>
+      <div><dt>Drawn entries checked on-chain</dt><dd data-k="verified">–</dd></div>
+      <div><dt>NEAR AI signers pinned</dt><dd data-k="signers">–</dd></div>
+      <div><dt>Reveal transactions</dt><dd data-k="caught">–</dd></div>
     </dl>
   </div>
 
@@ -75,14 +75,14 @@
       <div class="stage-bar">
         <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
         <span class="stage-path mono" id="stage-path">%CONTRACT%</span>
-        <span class="stage-src mono" id="stage-src">replay of on-chain state</span>
+        <span class="stage-src mono" id="stage-src">replay of contract state</span>
       </div>
       <div class="stage-body">
         <ol class="phases" id="phases">
-          <li data-p="0"><b>01</b><span>Commit</span><small>Salted Merkle root of the sealed set and the full grade vector</small></li>
-          <li data-p="1"><b>02</b><span>Draw</span><small>Anyone can trigger it once every run is in; <code>random_seed</code> picks 20</small></li>
-          <li data-p="2"><b>03</b><span>Reveal</span><small>The owner opens exactly those entries, bytes and all</small></li>
-          <li data-p="3"><b>04</b><span>Verify</span><small><code>ecrecover</code> the TEE signature, re-grade, settle</small></li>
+          <li data-p="0"><b>01</b><span>Commit</span><small>Salted Merkle root and grade vector</small></li>
+          <li data-p="1"><b>02</b><span>Draw</span><small>Any caller; <code>random_seed</code> picks 20</small></li>
+          <li data-p="2"><b>03</b><span>Reveal</span><small>Drawn entries with proofs</small></li>
+          <li data-p="3"><b>04</b><span>Verify</span><small><code>ecrecover</code> and re-grade</small></li>
         </ol>
         <div class="board">
           <div class="cells" id="cells" aria-hidden="true"></div>
@@ -90,30 +90,30 @@
         </div>
         <div class="console mono" id="console" aria-hidden="true"></div>
       </div>
-      <figcaption id="stage-cap" class="sr-only">Animated replay of a real audit: the 100-entry sealed set is committed, the chain draws 20 entries, the owner reveals them, and the contract verifies each TEE signature and settles the run as AUDITED.</figcaption>
+      <figcaption id="stage-cap" class="sr-only">Replay of a real audit on the contract: 100 entries are committed, the draw picks 20, the owner reveals them, and the contract checks each signature and settles the run as AUDITED.</figcaption>
     </figure>
   </div>
 </section>
 
 <section class="sec" id="problem">
   <div class="wrap">
-    <p class="kicker">The problem</p>
-    <h2 class="h2">A public benchmark is a leaked exam.<br><span class="mut">A private one is a promise.</span></h2>
+    <p class="kicker">Problem</p>
+    <h2 class="h2">Published test sets can end up in training data.</h2>
     <div class="cards3">
       <article class="card">
         <span class="card-ix mono">A</span>
         <h3>Public sets leak</h3>
-        <p>Test questions end up in training data. A high score can mean the model learned the skill, or that it saw the answers.</p>
+        <p>Published benchmarks get scraped into training corpora. A high score can then come from memorized answers.</p>
       </article>
       <article class="card">
         <span class="card-ix mono">B</span>
-        <h3>Private sets can't be checked</h3>
-        <p>Keep the questions secret and the leak stops, but now the score is just someone's word. Nobody outside can audit it.</p>
+        <h3>Private scores rest on trust</h3>
+        <p>An unpublished set limits exposure. Outsiders then have only the reported number.</p>
       </article>
       <article class="card card-hi">
         <span class="card-ix mono">C</span>
-        <h3>Sealed Bench does both</h3>
-        <p>The set stays private. After every run is committed, a random sample is opened and checked by a contract. Misreport 10% of entries and a 20-of-100 sample catches it about 90% of the time.</p>
+        <h3>Sealed Bench</h3>
+        <p>The set stays private. After the runs are committed, the owner must reveal a random 20 of 100 entries, and the contract checks each one.</p>
       </article>
     </div>
   </div>
@@ -122,7 +122,7 @@
 <section class="sec" id="protocol">
   <div class="wrap">
     <p class="kicker">Protocol</p>
-    <h2 class="h2">Four steps from a claim<br>to a verdict.</h2>
+    <h2 class="h2">How a run is audited</h2>
     <div class="steps" id="steps"></div>
   </div>
 </section>
@@ -131,10 +131,10 @@
   <div class="wrap">
     <div class="sec-head">
       <div>
-        <p class="kicker">Live audit explorer</p>
-        <h2 class="h2">Read the audits<br>straight from the chain.</h2>
+        <p class="kicker">Explorer</p>
+        <h2 class="h2">Runs on the testnet contract</h2>
       </div>
-      <p class="sec-note" id="source-note">Status, scores, grade vectors and draws come from <a href="%EXPLORER%/address/%CONTRACT%" rel="noopener">%CONTRACT%</a> views over public NEAR RPC. Entry text and responses come from the published reveal fixtures, and you can re-check each one on-chain. No backend, no keys.</p>
+      <p class="sec-note" id="source-note">Status, score, grades and draw are contract views read over public RPC. Question and response text come from the published reveal files.</p>
     </div>
     <div class="banner" id="fallback" hidden role="status"></div>
     <div class="explorer" id="ex">
@@ -147,8 +147,8 @@
 <section class="sec" id="gap">
   <div class="wrap">
     <p class="kicker">Result</p>
-    <h2 class="h2">Public originals vs. sealed variants.</h2>
-    <p class="lede-sm">Same 25 GSM8K problems: the public originals, and 100 private numeric variants (4 per problem), never published; only the NEAR AI TEE inference saw them, and the 20 sampled ones are now public. Temperature 0. A large gap would hint at memorization; these two models show none. GSM8K is easy for both, so this is a ceiling result, not evidence for or against contamination.</p>
+    <h2 class="h2">GSM8K: public problems vs. private variants</h2>
+    <p class="lede-sm">25 public GSM8K problems and 100 unpublished numeric variants, 4 per problem. NEAR AI's TEE saw the variants; the 20 drawn are now public. Temperature 0. Both models score near 100% on both sets, so this result says nothing about contamination. One public problem is 4 points, so a 2-point gap is below resolution.</p>
     <div class="gap" id="gap-table"></div>
   </div>
 </section>
@@ -158,9 +158,9 @@
     <div class="sec-head">
       <div>
         <p class="kicker">Tamper lab</p>
-        <h2 class="h2">Try to cheat.<br><span class="mut">The contract is listening.</span></h2>
+        <h2 class="h2">Edit a signed entry and submit it</h2>
       </div>
-      <p class="sec-note">Each attempt goes to the real contract's <code>check_reveal</code> view, a free read-only call that runs the same checks as a reveal and reports the first one that fails (usually a Merkle proof). Nothing is written on-chain.</p>
+      <p class="sec-note">Each submission calls the contract's free <code>check_reveal</code> view, which returns the first failed check.</p>
     </div>
     <div class="lab" id="lab"></div>
   </div>
@@ -169,38 +169,39 @@
 <section class="sec" id="odds">
   <div class="wrap odds">
     <div>
-      <p class="kicker">The math</p>
-      <h2 class="h2">Twenty draws.<br><span class="mut">Probabilistic, not perfect.</span></h2>
-      <p class="lede-sm">A misreport survives only if the 20-of-100 sample misses every bad entry. Big lies rarely survive; small ones often do. Inflating 98 to 100 (2 entries) is caught only about 36% of the time, and an owner who retries 10 suites at 10% misreporting gets one through about 63% of the time. Drag to see the odds.</p>
+      <p class="kicker">Detection odds</p>
+      <h2 class="h2">How often a misreport is caught</h2>
+      <p class="lede-sm">With 10 bad entries out of 100, the draw catches the run 90.5% of the time. With 2, 36%. Across 10 suites at 10% misreporting, at least one gets through 63% of the time. These figures assume an unbiased draw and no retries.</p>
       <label class="slider"><span>Misreported entries: <b class="mono" id="odds-m">10</b> of 100</span>
         <input type="range" min="1" max="30" value="10" id="odds-in" aria-describedby="odds-out"></label>
-      <p class="fine">Per run, exact hypergeometric odds for 20 distinct entries out of 100. This is not the probability the score is correct, and it says nothing about benchmark quality.</p>
+      <p class="fine">Hypergeometric, per run, 20 distinct entries of 100. This is not the probability that the score is correct.</p>
     </div>
     <div class="odds-card">
-      <div class="odds-big" id="odds-out" aria-live="polite"><span class="mono">90.5%</span><small>chance the sample catches it</small></div>
-      <svg class="odds-chart" id="odds-chart" viewBox="0 0 400 200" role="img" aria-label="Catch probability rises from 20% at one misreported entry to over 99% at twenty"></svg>
+      <div class="odds-big" id="odds-out" aria-live="polite"><span class="mono">90.5%</span><small>chance the draw includes a bad entry</small></div>
+      <svg class="odds-chart" id="odds-chart" viewBox="0 0 400 200" role="img" aria-label="Catch probability by number of misreported entries: 20% at 1, 36% at 2, 90.5% at 10, over 99% at 20"></svg>
     </div>
   </div>
 </section>
 
 <section class="sec" id="near">
   <div class="wrap">
-    <p class="kicker">Built on NEAR</p>
-    <h2 class="h2">The checks run on-chain.<br><span class="mut">The trust list is below.</span></h2>
+    <p class="kicker">NEAR</p>
+    <h2 class="h2">What runs on NEAR</h2>
     <div class="bento">
       <article class="bento-a card">
         <h3>TEE-signed inference</h3>
-        <p>Models run in Intel TDX + NVIDIA confidential VMs on NEAR AI Cloud, which signs each response with a key held inside the attested enclave. The signature covers the gateway's model id, not the weights.</p>
+        <p>NEAR AI Cloud runs models in Intel TDX and NVIDIA confidential VMs and signs each response with an enclave key. The signature covers the gateway's model id. It does not identify the weights.</p>
         <pre class="code mono"><code>GET /v1/signature/{chat_id}
-<span class="c">// signs, EIP-191 personal_sign:</span>
-"MODEL:" + sha256(request) + ":" + sha256(response)</code></pre>
+<span class="c">// EIP-191 personal_sign over:</span>
+model_id + ":" + sha256(request) + ":" + sha256(response)</code></pre>
       </article>
       <article class="bento-b card">
         <h3>On-chain <code>ecrecover</code></h3>
-        <p>The contract rebuilds the exact request bytes, hashes both sides and recovers the signer itself.</p>
+        <p>The contract rebuilds the request from the committed template and recovers the signer.</p>
         <pre class="code mono"><code><span class="c">// contract/src/verify.rs</span>
 let pk = env::ecrecover(&amp;hash, &amp;sig[..64], v, false).ok_or("ecrecover failed")?;
 let h = env::keccak256_array(&amp;pk);
+addr.copy_from_slice(&amp;h[12..]);
 <span class="c">// contract/src/lib.rs</span>
 let pinned = self.signers.get(&amp;run.model).cloned().unwrap_or_default();
 if !pinned.iter().any(|p| p.address == addr) {
@@ -208,17 +209,17 @@ if !pinned.iter().any(|p| p.address == addr) {
 }</code></pre>
       </article>
       <article class="bento-c card">
-        <h3>Chain randomness, twice</h3>
-        <p><code>random_seed</code> sets each run's nonce, and draws the shared sample once every run is committed. The draw is permissionless: anyone can trigger it.</p>
+        <h3><code>random_seed</code></h3>
+        <p>Sets each run's nonce at <code>start_run</code> and picks the sample at the draw.</p>
       </article>
       <article class="bento-d card">
-        <h3>Attested signers</h3>
-        <p>The admin pins each signer after checking its TDX quote off-chain with <code>dcap-qvl</code>. The report's sha256 is stored on-chain with the pin.</p>
+        <h3>Pinned signers</h3>
+        <p>The admin pins a key after checking its TDX quote off-chain with <code>dcap-qvl</code>. The report hash is stored with it. The contract does not verify the quote.</p>
         <div class="pins" id="pins"></div>
       </article>
       <article class="bento-e card">
-        <h3>Free verification</h3>
-        <p>The <code>check_reveal</code> view runs the reveal checks for free over RPC. This page uses it, and so can you.</p>
+        <h3><code>check_reveal</code></h3>
+        <p>Runs the reveal checks as a free view. The explorer and tamper lab use it.</p>
       </article>
     </div>
   </div>
@@ -227,69 +228,69 @@ if !pinned.iter().any(|p| p.address == addr) {
 <section class="sec" id="trust">
   <div class="wrap">
     <p class="kicker">Threat model</p>
-    <h2 class="h2">What you trust, what it proves,<br><span class="mut">and what it doesn't.</span></h2>
+    <h2 class="h2">Trust assumptions and limits</h2>
     <div class="trust">
       <article class="card">
         <h3><span class="ico ico-warn" aria-hidden="true"></span>You trust</h3>
         <ul>
-          <li>NEAR AI Cloud's TEE signing key for each model. The inference provider sees the sealed entries, inside the TEE.</li>
-          <li>The admin who pins a signer after verifying its attestation off-chain (DCAP quote, report-data binding, MRCONFIGID, RTMR3 replay).</li>
-          <li>The model id, which is the gateway's claim. The signature authenticates that claim, not the weights.</li>
-          <li>The upgrade authority. The contract account holds a full-access key and has been redeployed with state kept, so results are only as permanent as that key until it is locked.</li>
-          <li>Shared keys: instances of one model share a signer, so a match doesn't name the serving instance.</li>
+          <li>NEAR AI Cloud to keep each signing key inside its enclave. The provider sees every sealed entry inside the TEE.</li>
+          <li>The operator. Owner and admin are the same operator here. The admin pins keys after an off-chain check of the DCAP quote, report data, MRCONFIGID and RTMR3. In v1 a key pinned after a run still counts, and pins cannot be revoked.</li>
+          <li>The gateway's model id. The signature does not identify the weights.</li>
+          <li>Shared keys. All instances of a model use one signer, so a match does not identify the serving instance.</li>
+          <li>The upgrade key. The operator holds a full-access key to the contract account and has redeployed with state kept. Until that key is removed, it can deploy code that changes stored results.</li>
         </ul>
       </article>
       <article class="card">
-        <h3><span class="ico ico-ok" aria-hidden="true"></span>It proves</h3>
+        <h3><span class="ico ico-ok" aria-hidden="true"></span>A passing audit shows</h3>
         <ul>
-          <li>Revealed items were fixed before the run.</li>
-          <li>Each revealed response was produced for this run's nonce and signed by the pinned TEE key.</li>
-          <li>Committed grades match a deterministic re-grade of the raw bytes.</li>
-          <li>The score is the sum of the committed grade vector.</li>
+          <li>The revealed questions and answer keys were committed before the run.</li>
+          <li>Each revealed response used this run's nonce and was signed by a key pinned for that model.</li>
+          <li>For each revealed entry, the committed grade matches a deterministic re-grade of the raw response.</li>
+          <li>The score equals the sum of the committed grade vector.</li>
         </ul>
       </article>
       <article class="card">
-        <h3><span class="ico ico-bad" aria-hidden="true"></span>It doesn't prove</h3>
+        <h3><span class="ico ico-bad" aria-hidden="true"></span>It does not show</h3>
         <ul>
-          <li><b>Unsampled entries.</b> Checked only probabilistically, under the bound above.</li>
-          <li><b>Re-rolls.</b> The per-run nonce stops answers made before the run, not best-of-N re-rolls within it. Temperature 0 makes re-rolls less useful; it doesn't prevent them.</li>
-          <li><b>Small lies.</b> Detection is probabilistic: about 90% at 10% misreported entries, about 36% for a 2-entry inflation. Retrying across suites raises the odds of slipping through.</li>
-          <li><b>Secrecy from the owner.</b> The set is hidden from vendors and the public, not from its owner.</li>
-          <li><b>An unbiased draw.</b> Block producers can slightly bias <code>random_seed</code>. The draw is permissionless, but in these runs the operator's own admin account called it, and the v1 contract lets the caller batch the draw with reveals and retry. Both are being fixed in v2.</li>
+          <li><b>Unsampled entries.</b> They stay unchecked. The odds above are the only coverage.</li>
+          <li><b>Re-rolls.</b> The nonce binds signed responses to the run. Best-of-N within the run is still possible.</li>
+          <li><b>Small misreports.</b> 2 bad entries are caught 36% of the time.</li>
+          <li><b>Abandoned runs and suite shopping.</b> In v1 an owner can leave a bad run uncommitted, which blocks the draw, or commit one set to several suites and keep the one that passes.</li>
+          <li><b>Secrecy from the owner.</b> The owner sees and grades the set.</li>
+          <li><b>An unbiased draw.</b> Block producers can bias <code>random_seed</code>. Here the operator's admin account called the draw, and v1 lets the caller batch it with reveals and retry. The fix is in v2, not yet deployed.</li>
         </ul>
       </article>
     </div>
-    <p class="fine trust-fine">Also: each reveal spends 20 items of the sealed set. The 0.1 NEAR testnet bond is locked, not slashed. The DEV-ONLY mock signer uses a public key, is labeled <code>mock/DEV-ONLY-not-a-TEE</code>, and no claim cites it.</p>
+    <p class="fine trust-fine">Revealed entries are public and must be retired from the private set. The 0.1 NEAR bond is locked on failure, not slashed. The mock signer's key is public; mock runs are labeled <code>mock/DEV-ONLY-not-a-TEE</code> and no claim cites them.</p>
   </div>
 </section>
 
 <section class="sec" id="verify">
   <div class="wrap verify">
     <div>
-      <p class="kicker">Don't trust this page</p>
-      <h2 class="h2">Verify it yourself<br>in about two minutes.</h2>
-      <p class="lede-sm">No NEAR account, no wallet, no API key. Node 22.18+ and network access to testnet RPC.</p>
+      <p class="kicker">Reproduce</p>
+      <h2 class="h2">Check it from a clean clone</h2>
+      <p class="lede-sm">Needs Node 22.18+ and testnet RPC. No account or key. About two minutes.</p>
       <ol class="vlist">
-        <li><b>Replay the real audits.</b> Re-derives the challenge from the chain seed, replays every reveal offline, then checks roots, grades, signers and <code>check_reveal</code> on-chain.</li>
-        <li><b>Try to cheat.</b> Nine edits to a real TEE-signed entry. All nine rejected, each with the reason the checks give.</li>
+        <li><b><code>npm run verify</code></b> Replays each reveal offline and compares roots, the draw, grades and signers with contract views.</li>
+        <li><b><code>npm run tamper</code></b> Applies nine edits to a signed entry and prints why each is rejected. Some are checked by the contract view, some offline.</li>
       </ol>
     </div>
     <div class="term" id="term">
       <div class="term-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="mono">~/sealed-bench</span>
-        <button class="copy" type="button" data-copy="git clone https://github.com/jazulay/sealed-bench
+        <button class="copy" type="button" data-copy="git clone %GITHUB%
 cd sealed-bench &amp;&amp; npm ci
 npm run verify
-npm run tamper">Copy all</button></div>
-<pre class="mono"><code><span class="p">$</span> git clone https://github.com/jazulay/sealed-bench
+npm run tamper">Copy</button></div>
+<pre class="mono"><code><span class="p">$</span> git clone %GITHUB%
 <span class="p">$</span> cd sealed-bench &amp;&amp; npm ci
 
 <span class="p">$</span> npm run verify
-<span class="o"># expect "ok": true and 4 results (2 suites × Qwen, GLM)</span>
-<span class="o"># every check true · "onchain_status": "Audited"</span>
+<span class="o"># expect "ok": true and every check true</span>
 
 <span class="p">$</span> npm run tamper
 <span class="o"># expect "9/9 lies rejected; honest reveal accepted=true"</span></code></pre>
-<p class="term-note">Expected results from the README's "do X → see Y" steps, which also cover the TEE attestation check. Output is JSON; <code>npm ci</code> takes about a minute.</p>
+<p class="term-note">The README covers the attestation check.</p>
     </div>
   </div>
 </section>
@@ -297,9 +298,9 @@ npm run tamper">Copy all</button></div>
 <section class="sec closer">
   <div class="wrap closer-in">
     <svg class="closer-mark" viewBox="0 0 32 32" aria-hidden="true"><use href="#seal"/></svg>
-    <h2 class="display display-sm">Benchmarks that can be<br><em>checked</em>, not just believed.</h2>
+    <h2 class="display display-sm">The contract, CLI and fixtures are on GitHub under MIT.</h2>
     <div class="cta">
-      <a class="btn btn-primary" href="%GITHUB%" rel="noopener">Read the code on GitHub</a>
+      <a class="btn btn-primary" href="%GITHUB%" rel="noopener">Source</a>
       <a class="btn btn-ghost" href="%EXPLORER%/address/%CONTRACT%" rel="noopener">Contract on NearBlocks</a>
     </div>
   </div>
@@ -310,15 +311,15 @@ npm run tamper">Copy all</button></div>
   <div class="wrap foot-in">
     <div class="foot-brand">
       <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><use href="#seal"/></svg>
-      <div><b>Sealed Bench</b><span>Built at NEAR HACKATHON 2026 · MIT licensed</span></div>
+      <div><b>Sealed Bench</b><span>Built at NEAR HACKATHON 2026. MIT license.</span></div>
     </div>
     <ul class="foot-links">
       <li><a href="%GITHUB%" rel="noopener">GitHub</a></li>
       <li><a href="%EXPLORER%/address/%CONTRACT%" rel="noopener">Contract</a></li>
-      <li><a href="https://github.com/jazulay/sealed-bench/tree/main/docs/debate" rel="noopener">Design debate</a></li>
-      <li><a href="https://docs.near.ai/" rel="noopener">NEAR AI Cloud</a></li>
+      <li><a href="%GITHUB%/tree/main/docs/debate" rel="noopener">Design review</a></li>
+      <li><a href="https://docs.near.ai/" rel="noopener">NEAR AI Cloud docs</a></li>
     </ul>
-    <p class="foot-fine mono" id="foot-fine">NEAR testnet · data source pending</p>
+    <p class="foot-fine mono" id="foot-fine">NEAR testnet</p>
   </div>
 </footer>
 

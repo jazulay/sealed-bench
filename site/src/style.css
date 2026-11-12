@@ -418,3 +418,5 @@ input[type=range]:hover::-webkit-slider-thumb { box-shadow: 0 0 0 7px rgba(0,236
   .nav-in { position: relative; }
 }
 .nav-right .menu-btn { order: 3; }
+.display-hero { font-size: clamp(40px, 6.4vw, 88px); line-height: 1.0; max-width: 15ch; margin-inline: auto; }
+.vlist b code { font-size: .9em; }
