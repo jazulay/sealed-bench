@@ -2,6 +2,8 @@
 
 Sealed Bench runs sampled on-chain audits for private AI evaluations on NEAR.
 
+**Pre-registered:** the hypothesis and analysis for the harder competition-math suites are in [PREREGISTRATION.md](PREREGISTRATION.md), committed before those runs.
+
 **Live site and audit explorer: https://sealed-bench.up.railway.app** (reads the testnet contract in your browser over public RPC; no keys, no backend).
 
 **Problem.** Public benchmarks leak into training data, so a high score on one can mean the model memorized it. A private test set avoids the leak, but then nobody can check the score. Sealed Bench lets an owner keep the test set private and still have the score audited publicly:
