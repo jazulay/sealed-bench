@@ -17,7 +17,9 @@
     "web": "node cli/src/cli.ts export-web --dir fixtures/real,fixtures/demo,fixtures/demo-fail",
     "verify:demo": "node cli/src/cli.ts verify --dir fixtures/demo",
     "test:contract": "cd contract && cargo test",
-    "build:contract": "cd contract && cargo near build non-reproducible-wasm"
+    "build:contract": "cd contract && cargo near build non-reproducible-wasm",
+    "gap": "node cli/src/cli.ts gap --public aime-public-v1 --sealed aime-sealed-v1",
+    "gap:gsm": "node cli/src/cli.ts gap --public gsm-public-v2 --sealed gsm-sealed-v2"
   },
   "dependencies": {
     "@phala/dcap-qvl": "^0.7.1",

@@ -22,7 +22,7 @@
 <body>
 <main>
   <h1>Sealed Bench</h1>
-  <div class="sub">Private AI evals, publicly audited on NEAR. Owners commit a sealed test set and every model run; NEAR randomness picks which items must be revealed; the contract checks each reveal against NEAR AI Cloud TEE signatures and re-grades it.</div>
+  <div class="sub">Private AI evals, publicly spot-checked on NEAR. The owner commits a sealed test set and every model run; after that, anyone can trigger a NEAR-randomness draw of 20 items that must be revealed, and the contract checks each against a NEAR AI Cloud TEE signature and re-grades it. Unsampled items are not checked, and the inference provider sees the sealed questions inside its TEE.</div>
   <div id="meta" class="mut"></div>
   <div id="gap"></div>
   <div id="suites"></div>
@@ -36,26 +36,24 @@
 <script>
 const D = window.SEALED_BENCH, $ = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstChild; };
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-document.getElementById("meta").innerHTML = `Contract <a href="${D.explorer}/address/${D.contract}">${D.contract}</a> on NEAR testnet &middot; data exported ${esc(D.generated_at)} &middot; replay with <code>npm run verify</code>`;
+document.getElementById("meta").innerHTML = `Contract <a href="${D.explorer}/address/${D.contract}">${D.contract}</a> on NEAR testnet &middot; static snapshot exported ${esc(D.generated_at)} from repo fixtures plus testnet views (not live; the live site reads the chain) &middot; replay with <code>npm run verify</code>`;
 const pct = (a, b) => (100 * a / b).toFixed(1) + "%";
-const byModel = {};
-for (const s of D.suites) for (const r of s.runs) (byModel[r.model] ??= {})[s.suite_id] = { ...r, kind: /public/.test(s.suite_id) ? "public" : "sealed" };
-const gapRows = Object.entries(byModel).filter(([m]) => !m.startsWith("mock/")).map(([m, x]) => {
-  const pub = Object.values(x).find((r) => r.kind === "public" && r.audit?.status === "Audited");
-  const sea = Object.values(x).find((r) => r.kind === "sealed" && r.audit?.status === "Audited");
-  if (!pub || !sea) return "";
-  return `<tr><td>${esc(m)}</td><td>${pct(pub.score, pub.n)}</td><td>${pct(sea.score, sea.n)}</td><td><b>${((100 * pub.score / pub.n) - (100 * sea.score / sea.n)).toFixed(1)} pts</b></td></tr>`;
-}).join("");
-if (gapRows) document.getElementById("gap").appendChild($(`<div class="card"><h2 style="margin:0 0 8px">Public-to-sealed variant gap</h2>
-  <div class="mut">Same 25 GSM8K problems: the public originals versus 100 sealed numeric variants (4 per problem), TEE inference on NEAR AI Cloud, temperature 0. A large gap would suggest memorization of the public set; a small one is what these two models show here. GSM8K is easy for both, so this is a ceiling result, published as pre-committed.</div>
-  <table><tr><th>model</th><th>public originals</th><th>sealed variants</th><th>gap</th></tr>${gapRows}</table></div>`));
+const FAM = { aime: "AIME-style competition math (integer answers)", gsm: "GSM8K-style grade-school math (control)" };
+const famOrder = (f) => (f === "aime" ? 0 : 1);
+const fams = [...new Set((D.gaps ?? []).map((g) => g.family))].sort((a, b) => famOrder(a) - famOrder(b));
+const gapRows = fams.map((f) => (D.gaps.filter((g) => g.family === f)).map((g) =>
+  `<tr><td>${esc(FAM[f] ?? f)}</td><td>${esc(g.model)}</td><td>${g.public[0]}/${g.public[1]} (${pct(g.public[0], g.public[1])})</td><td>${g.sealed[0]}/${g.sealed[1]} (${pct(g.sealed[0], g.sealed[1])})</td><td><b>${g.gap_pts > 0 ? "+" : ""}${g.gap_pts.toFixed(1)} pts</b></td><td>[${g.ci95_pts[0].toFixed(1)}, ${g.ci95_pts[1].toFixed(1)}]</td><td>${g.detected ? "yes" : "no"}</td></tr>`).join("")).join("");
+if (gapRows) document.getElementById("gap").appendChild($(`<div class="card"><h2 style="margin:0 0 8px">Public-to-sealed variant gap (pre-registered)</h2>
+  <div class="mut">For each family: 25 public originals versus 100 sealed variants (4 per original, numbers perturbed and answers recomputed by code), TEE inference on NEAR AI Cloud, temperature 0, one attempt. Gap = mean over the 25 problems of (original correct) &minus; (share of its 4 variants correct); 95% bootstrap interval over problems. "Detected" means the lower bound is above 0. A gap is consistent with memorization, not proof of it. Hypothesis and method: <a href="https://github.com/jazulay/sealed-bench/blob/main/PREREGISTRATION.md">PREREGISTRATION.md</a>, committed before inference. Scores are owner-reported and committed on-chain; 20 random entries per run were checked on NEAR.</div>
+  <table><tr><th>suite family</th><th>model</th><th>public originals</th><th>sealed variants</th><th>gap</th><th>95% CI</th><th>detected</th></tr>${gapRows}</table></div>`));
 const isMock = (s) => s.runs.every((r) => r.model.startsWith("mock/"));
-const ordered = [...D.suites.filter((s) => !isMock(s)), ...D.suites.filter(isMock)];
+const rank = (s) => (isMock(s) ? 10 : 0) + (s.suite_id.startsWith("aime") ? 0 : 1) + (/public/.test(s.suite_id) ? 0 : 0.5);
+const ordered = [...D.suites].sort((a, b) => rank(a) - rank(b));
 let mockHeader = false;
 for (const s of ordered) {
   if (isMock(s) && !mockHeader) { mockHeader = true; document.getElementById("suites").appendChild($(`<h2 style="margin:28px 0 0">Protocol rehearsal (DEV-ONLY mock signer)</h2>`)); }
   const el = $(`<div class="card"></div>`);
-  el.innerHTML = `<div class="row"><h2 style="margin:0">${esc(s.suite_id)}</h2><span class="mut">n=${s.n} &middot; k=${s.k} &middot; root <code>${esc(s.root.slice(0, 16))}&hellip;</code> &middot; challenge drawn at block ${esc(s.draw_height)}</span></div>`;
+  el.innerHTML = `<div class="row"><h2 style="margin:0">${esc(s.suite_id)}</h2><span class="mut">n=${s.n} &middot; k=${s.k} &middot; root <code>${esc(s.root.slice(0, 16))}&hellip;</code> &middot; challenge drawn at block ${esc(s.draw_height)} by <code>${esc(s.drawn_by ?? "?")}</code> (owner <code>${esc(s.owner ?? "?")}</code>)</span></div>`;
   for (const r of s.runs) {
     const st = r.audit?.status ?? "unknown";
     const mock = r.model.startsWith("mock/");

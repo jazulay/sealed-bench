@@ -57,8 +57,11 @@ function gen() {
     items = pub.map((p: any, idx: number) => ({ idx, salt: r.hex32(), answer: p.answer, question: p.question, template: "original", source: p.source }));
   } else if (set === "aime") {
     items = [];
+    const seen = new Set<string>();
     for (let v = 0; v < per; v++) for (const t of AIME_TEMPLATES) {
-      const { question, answer } = t.make(r);
+      let q = t.make(r); for (let tries = 0; seen.has(q.question) && tries < 200; tries++) q = t.make(r);
+      if (seen.has(q.question)) throw new Error(`template ${t.id}: could not draw ${per} distinct variants`);
+      seen.add(q.question); const { question, answer } = q;
       items.push({ idx: items.length, salt: r.hex32(), answer, question, template: t.id, source: t.source });
     }
   } else if (kind === "public") {
@@ -66,8 +69,10 @@ function gen() {
     items = pub.map((p: any, idx: number) => ({ idx, salt: r.hex32(), answer: p.answer, question: p.question, template: "original", source: p.gsm8k_test_index }));
   } else {
     items = [];
+    const seen = new Set<string>();
     for (let v = 0; v < per; v++) for (const t of TEMPLATES) {
-      const { question, answer } = t.make(r);
+      let q = t.make(r); for (let tries = 0; seen.has(q.question) && tries < 200; tries++) q = t.make(r);
+      seen.add(q.question); const { question, answer } = q;
       if (!Number.isInteger(answer) || answer <= 0) throw new Error(`template ${t.id} produced ${answer}`);
       items.push({ idx: items.length, salt: r.hex32(), answer, question, template: t.id, source: t.gsm8k });
     }
@@ -163,7 +168,7 @@ async function main() {
           pinned_on_chain: pins.map((p) => ({ address: p.address, attestation_sha256: p.attestation_sha256, pinned_height: p.pinned_height, revoked_height: p.revoked_height })),
           matches_a_pin: pins.some((p) => p.attestation_sha256 === sha && p.address === a.signing_address) });
       }
-      const a = await attest(model);
+      const a = await attest(model, flags["allow-status"] ? { allowStatus: flags["allow-status"].split(",") } : {});
       // Fresh reports go to /tmp (or --out DIR) so a judge's clone stays clean; only `--save` (owner, before
       // pinning) writes into fixtures/attestation/.
       const outDir = flags.save ? join(ROOT, "fixtures", "attestation") : (flags.out ?? join("/tmp", "sealed-bench-attest"));
@@ -272,8 +277,9 @@ async function main() {
     case "verify": return (await import("./replay.ts")).verify(flags);
     case "tamper": return (await import("./replay.ts")).tamper(flags);
     case "export-web": return (await import("./replay.ts")).exportWeb(flags);
+    case "gap": return (await import("./gap.ts")).gap(flags);
     default:
-      out({ ok: false, usage: "gen | attest | pin-signer | commit-suite | start-run | infer | commit-run | draw | reveal | status | verify | tamper | export-web" });
+      out({ ok: false, usage: "gen | attest | pin-signer | commit-suite | start-run | infer | commit-run | draw | reveal | status | verify | tamper | export-web | gap" });
   }
 }
 

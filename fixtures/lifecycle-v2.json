@@ -1,0 +1,175 @@
+{
+ "contract": "sealedbench-v2-hk26.testnet",
+ "explorer": "https://testnet.nearblocks.io",
+ "txs": {
+  "aime-sealed-v1": {
+   "commit_suite": "5EuGLqjpTHKhHGbk87tGQhGMvWgjZ2LnrmrtATY6v8t",
+   "draw": "EGuRb6jaUGbSxsJKoQPsUJjaFdRPKWmfyJdSivibzid2",
+   "runs": {
+    "Qwen/Qwen3.8-27B": {
+     "start": "6rvUuEGRxkSqECTLVxt4cSogRGXbaYrPhMWKkXB3tVPV",
+     "commit": "DCDLc28LzUhZXdbnRxSomBSh9uGUdnG5pcqzgrYjHbTX",
+     "reveals": [
+      "4DzzaE1s8yXvLbMi5FvTsXwEPa5U7mqUagJEJQNHayTU",
+      "61qNj6SaEYH313pCZadzhnGyPXxPWJ9So5FicbAChNwe",
+      "4S8jQkkHUrEm9FAuYSNuoRVDbqmCVDoXXs9XsFWEpi8p",
+      "FEm2K4ZSo8xeUftBfsb8PFUtLTVjTtn8nEw8By5E2U9p",
+      "6txh5Y2waxg73grsnUQ6Sk1qRoah1ih8rdnUkcuDtx6n"
+     ],
+     "score": 83,
+     "n": 100,
+     "status": "AUDITED"
+    },
+    "z-ai/glm-5.3-flash": {
+     "start": "7HrBWHi3FMdCfXYPsEZp4Dxnz8HWWn5jP7WfjSm7wxZX",
+     "commit": "6psfg8eyzJdKJyzu4ddWbvu19E4xJdPLWfrTT46d7ZZf",
+     "reveals": [
+      "FD2Pkj6kepCv8Ai9MhNDDecyKK9UvDt2ztrfDGRTcHfZ",
+      "7VcoZXtwXSfMXZe95udZJAZFspmQJRpWf5sHBn89HhTo",
+      "8K24NVHPum5bwTHGXikFrruYvSLUteoDi21zW3CAvLKn",
+      "4FhDPbW7455bfpo7sk9buPC2ngCzvpB1RUqbbDHp5FR4",
+      "AZ6H5p9nP35TvTEFmaM3Uz1tXM1jcT2L2nkquMq56iyx"
+     ],
+     "score": 77,
+     "n": 100,
+     "status": "AUDITED"
+    }
+   }
+  },
+  "aime-public-v1": {
+   "commit_suite": "mASF6Bm58scP8VtxULFegbV5jM57keuJYLyCYUbhrrf",
+   "draw": "2qyvJpJs4bGw7eYKrSuAmi8WBQwXuXem2yN7ovuQcLZg",
+   "runs": {
+    "Qwen/Qwen3.8-27B": {
+     "start": "DhvFmHb8NtPAZ9vEbdmPHwFyfUrx9tV1Xrt9dJa4vUh7",
+     "commit": "E2a6vPhZihXwhLJvp5bFY11ogrGg2cC1jmh9fgxxY9Wn",
+     "reveals": [
+      "4FtkTR8CzeDAtFBhUCMTDSLeZhSGWjWonyPraXJhc5tk",
+      "AySJwmPAZM9hn7PHuVfXpAa5NkeqSBkhmt7NJs3NMh83",
+      "Wp7aTY6JhhFk9CCzqqu895SWTcfLmvJWDwNTT8E48Gn",
+      "3y25qYULccPUVMLbHfR6YpMPSzc5bYTM7sg4GjgRZ59s",
+      "AtEqtaALDDbf5gaTxb5fKPV2a1cSit2U4q76qf6qtc94"
+     ],
+     "score": 18,
+     "n": 25,
+     "status": "AUDITED"
+    },
+    "z-ai/glm-5.3-flash": {
+     "start": "HvbvsGVwBsiokizK4fEKGGKMY2eUvW1oUYTY22QvDVbh",
+     "commit": "2c1LDps8ueHZTqCv4JqLCUVRasBzvue9WEKdihEyFqiY",
+     "reveals": [
+      "2oybPotaxQAs4t7LKB6M61VZsqihBc7VLWDUHTkPAxVC",
+      "2MGpeVUNXcAreuKYN7rHfbsCR62Znhrktrhwty8RF2dq",
+      "J5U6h994XpBGi2bsFmo4JNDAV8Uk4DzTGXYsZphTdZMA",
+      "Dr6sDZUR14gM8Gx8bdHRQx6VAQadtbMZrTAuTJFK9WMC",
+      "B7kB8sBiyb4Lc6W5PEr2LqxmcXKMdkcGeUVfaz98EijM"
+     ],
+     "score": 22,
+     "n": 25,
+     "status": "AUDITED"
+    }
+   }
+  },
+  "gsm-sealed-v2": {
+   "commit_suite": "2wczxcKQzKznmqo3hxtzCczR6cj72uVSKc9jMsGHM23p",
+   "draw": "D3X25uvJEaF8Gy9man9VA4UQxuBb6zjDW1samQUsRoLq",
+   "runs": {
+    "Qwen/Qwen3.8-27B": {
+     "start": "41bVHQqfzAUUDPeeqTMTLbhPJX5DZZ45BEiPjeopUoXB",
+     "commit": "Fta438roEgLP24FUCARmiHPe5iNGprrtqjJvYWBFjwCq",
+     "reveals": [
+      "BD4rxb9PBcEAAPqfSXqWpu1iB4z95AfxcjMY2pp15atJ",
+      "AJrTRgJYVsV4HEtANJRxwW7CaZ8ycvx2EQAmAB6ZscTL",
+      "41mAmJLv2r8eo8tDxCtWBS5iKUShx5e2qPFft3EV4My7",
+      "7f6HBMaUCJs1vYCFEHYyfKdwD5QFTiDhgDKFvFoqp21q"
+     ],
+     "score": 100,
+     "n": 100,
+     "status": "AUDITED"
+    },
+    "z-ai/glm-5.3-flash": {
+     "start": "AudQxvhnreNSVhzX4YCwHcgaJEpdgvdnK6HL5Ya4hDuj",
+     "commit": "8Pe19z1tvwge8vH1DB4eA9gspWi5esyWNQAeg4nDxSKC",
+     "reveals": [
+      "CsJgcAxkufnDCSK3uiL1ttqnVxN6RCLhrLsCx9CFjdV5",
+      "zL4JkwRoLkJx6BA2XLdkwkkRSSBD9PPc1zLXoaHy5Ww",
+      "AJzGCH44sX7zeurTQ6BGSzSVJAAL3H6VVycvCy3ENaZ5",
+      "3B1WD67Xemkibfv2Q9aKYavDaEFoftSTBZi6Q71kXhqY"
+     ],
+     "score": 100,
+     "n": 100,
+     "status": "AUDITED"
+    }
+   }
+  },
+  "gsm-public-v2": {
+   "commit_suite": "Ci5CnM82roMMzbyBpX1bLB8CTJmHL6j798VpKFgKEoyU",
+   "draw": "CzBbktFkQdtk1f6tDp2N4NTj2yj1DnS5hSUf2GiRi1Ks",
+   "runs": {
+    "Qwen/Qwen3.8-27B": {
+     "start": "8e8ko7K3isagU19rGcvCe2HaSPMNcZ9JXoxGJ8QQY4mo",
+     "commit": "6651rJVE5TytbSWqSTCVzWBmWpnCr77v1KKJZtGmJCov",
+     "reveals": [
+      "5iUyn7TQH4KdbMNZFHukDByn7bgfhGHLAH7Pd7AMjJWE",
+      "9V1LMzoZJfxmMXhzLad9Dy2SZ3neDGJMUS3vJEjbVSqE",
+      "doGFtgkvuDXkT8g68cSFGTN9bfSp9rdvo3KK2UVqe3K",
+      "CQnAR1cNox1ntK3Pq1i5Es4Ees92Jj4u6tMwvAgJ15cX"
+     ],
+     "score": 25,
+     "n": 25,
+     "status": "AUDITED"
+    },
+    "z-ai/glm-5.3-flash": {
+     "start": "EYyN1NX3iLPs6Gw5Szq2WXQLxHGhwpn5vERKtNQp1Nf1",
+     "commit": "12v39QXnmzERR4jvgK88PFpUJZYkbQxiNEeAJwykTkjH",
+     "reveals": [
+      "413mKFDAjRXM91xXty9sogk3es58b6ncQWuyqKsgc3Bz",
+      "9VtJFvKf4wfzVvbCLTHkH4zV345BAzmFTxKUx8rndD9j",
+      "GZukZUNLqhg1R9tyqJCXM2w5EPPpfY2GiERu9mp7oZK5",
+      "Gbza3ZuVZbivLfMf94uSTgDLsLjXpCJVbXNdvAD2Sm6J"
+     ],
+     "score": 24,
+     "n": 25,
+     "status": "AUDITED"
+    }
+   }
+  },
+  "demo-mock-sealed-v3": {
+   "commit_suite": "4evbJH4UTPnwkptD71zo1G3JKzgsgeL1ZtoNfUV2CcuC",
+   "draw": "8WD3m8UXojybguCwSDN39ALNQ6UvKTRyp5y5ptnSthcH",
+   "runs": {
+    "mock/DEV-ONLY-not-a-TEE": {
+     "start": "2nkX43p4Y4tqpCaPpWUeB5SR1ffRCL7KKApdRixUjZFJ",
+     "commit": "4UsitudCxyx7GsPhAJVc8cGvBCq1WHfUEcg8SvAj8kfC",
+     "reveals": [
+      "GtSFJWdMtTFDxFoiLqfxk8uc5kLnweuXx3SR81q3BpwR",
+      "AfupYCFr6SMen39iu51BY8cfgGxsk3r88b42vTuK9wwN",
+      "2eP45pV5XVW3DouUFooQNqtGMdsdD6ptRQ8h1WmiNFde",
+      "C85eVhwjLEtnSAzyP1TtUGaF15Ee6SSrJVSHJ71fVTPc"
+     ],
+     "status": "Audited"
+    }
+   }
+  },
+  "demo-mock-cheat-v3": {
+   "commit_suite": "7c6axPZ2mKk4Vy2agW3LWZkpBQSFGKjbiJcauzZU7Gbr",
+   "draw": "6YiWUnCy53TCiWebSgfnRkDUX9akmsc4g5zLNKpCKphf",
+   "runs": {
+    "mock/DEV-ONLY-not-a-TEE": {
+     "start": "D4yW4VaFxZJg3GkDLpQntnXnPfpjhBgnzLxx2DCRadAE",
+     "commit": "CA6BzXY5KTFYd94ZxYmuxLMXs9tknAWeRtsB8xsvJW2n",
+     "reveals": [
+      "2sPyDK2rRgJJquiw2GXmCfuKiBLWbshPonFnNSDpBsJG"
+     ],
+     "status": "Failed"
+    }
+   }
+  },
+  "_contract": {
+   "deploy": "6nsbAo6QUQcnrDSLWQr4QqNFtnH1CQ3P7GDzq6VWHrxV",
+   "pin_qwen": "2WKhYheZDzvrot5ChP1hBJ9EABPPCgYTjCeVfUuHj4RA",
+   "pin_glm": "HYbP8AeiW91b3mHSdXdw4cmxsuMdAH7a4YLBF9eYJoQY",
+   "pin_mock": "AvbyiCSyPCD3rpPEg5Eq2ggwLgBf1gbZpfcQFD8PYh6m"
+  }
+ }
+}

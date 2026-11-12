@@ -173,7 +173,7 @@ export const AIME_TEMPLATES: AimeTemplate[] = [
     const lead = (k: number) => (k === 1 ? "1" : String(k));
     return { question: `Quadratic polynomials $P(x)$ and $Q(x)$ have leading coefficients $${lead(a)}$ and $-${lead(b)},$ respectively. The graphs of both polynomials pass through the two points $(${x1},${y1})$ and $(${x2},${y2}).$ Find $P(0) + Q(0).$`, answer: Number(v.n) };
   }),
-  TPL("base9", "2022 AIME I Problem 2", { base: 9, pat: "bca" }, (r) => ({ base: r.int(5, 12), pat: r.pick(["bca", "cab", "cba", "bac", "acb"]) }), ({ base, pat }) => {
+  TPL("base9", "2022 AIME I Problem 2", { base: 9, pat: "bca" }, (r) => ({ base: r.int(5, 20), pat: r.pick(["bca", "cab", "cba", "bac", "acb"]) }), ({ base, pat }) => {
     const sols: number[] = [];
     for (let N = 100; N <= 999; N++) {
       const dg: Record<string, number> = { a: Math.floor(N / 100), b: Math.floor(N / 10) % 10, c: N % 10 };

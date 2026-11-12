@@ -1,41 +1,56 @@
-# STATUS (Sealed Bench build log)
-Times in America/Chicago (CT).
+# STATUS (Sealed Bench changelog)
 
-- 2026-11-11 2:10 PM CT: Started the build on the box. Installed toolchain: rustup 1.86.0 + wasm32, cargo-near 0.23, near-cli-rs 0.31.1. `gh` is NOT authenticated (GitHub blocker).
-- NEAR AI signature format researched from docs.near.ai: ECDSA EIP-191 personal_sign over `MODEL:sha256(req):sha256(resp)`, a 65-byte r||s||v signature, and a 20-byte eth address. The model attestation report is public (no key needed). Qwen3.8-27B signer was 0x835ab53d20294ef795906dff21ae4c045336aa26 as of 2:12 PM CT.
-- 2:14 PM CT: Contract written (contract/src/lib.rs, verify.rs, tests.rs). `cargo test`: 27/27 pass, including an ethers-generated EIP-191 vector and k256-signed full-lifecycle tests. Needed Rust 1.99.1 (near-sdk 5.30 requires >=1.95; pinned in rust-toolchain.toml) and the near-sdk `unstable` feature for env::ecrecover. Wasm built: 223.8 KB.
-- Testnet accounts created via faucet sponsorship: sealedbench-hk26.testnet (contract + admin), sealedbench-owner-hk26.testnet (suite owner). Keys are in ~/.near-credentials on the box, not in the repo.
-- 2:16 PM CT: Contract deployed to testnet `sealedbench-hk26.testnet` and initialized with admin = itself. Redeployed at 2:24 PM CT with a cosmetic fail-message fix (tx WvBeytTEXaD5ryffnZq47nkB92PhwcLaNbi19JpZrmL); state preserved.
-- 2:18 PM CT: NEAR AI attestation verified with no key, using @phala/dcap-qvl: TCB UpToDate, report_data binds signer and nonce, MRCONFIGID matches app_compose, RTMR3 replay ok. Qwen3.8-27B signer 0x835ab53d…aa26 and GLM-5.3-flash signer 0x3b753b44…fa0c pinned on-chain with the report sha256. Raw reports are in fixtures/attestation/.
-- 2:21 PM CT: Ran the DEV-ONLY mock rehearsal on testnet:
-  - demo-mock-sealed-v1: 77/100, AUDITED.
-  - demo-mock-public-v1: 24/25, AUDITED.
-  - demo-mock-cheat-v2: inflated to 100/100, FAILED on re-grade.
-  - The draw was called by a non-owner account. Reveal gas is about 7.9 Tgas per 5 items.
-  - (demo-mock-cheat-v1 happened to have no wrong answers, so it AUDITED honestly; it's left on chain.)
-- 2:24 PM CT: Added CLI (gen, attest, pin-signer, commit-suite, start-run, infer, commit-run, draw, reveal, status, verify, tamper, export-web), static page web/index.html, README, LICENSE, docs/debate. `npm run verify` passes, `npm run tamper` rejects 9/9 lies, and `npm test` passes 6/6.
-- GitHub: the box gh is not logged in, so the Mac mini relays pushes (scripts/push-via-mac.md).
-- 2:50 PM CT: Published https://github.com/jazulay/sealed-bench (public, MIT detected, topics near/nearhackathon/tee/ai-benchmark). Author: Joseph Azulay <35465299+jazulay@users.noreply.github.com>. gitleaks: no leaks (public attestation reports allowlisted).
+Times are in America/Chicago (CT). Grok Bot wrote all the code. Claude Code and Codex reviewed only: they wrote no
+code, edited no files and touched no chain.
 
-- 2026-11-12, about 4:00 PM CT: Received the NEAR AI Cloud key ($10 NEAR Builders credits, claimed on yossiazulay.near). It is loaded from a mode-600 file on the box into env only, and is never committed or logged.
-- 4:08 PM CT: Byte-exact spike passed for both models.
-  - What matched: our `MODEL:sha256(req):sha256(resp)` equals NEAR AI's signed text exactly, and `signature_kind` is provider_tee.
-  - Recovered signers: ecrecover gives exactly the pinned signers, Qwen 0x835ab53d…aa26 and GLM 0x3b753b44…fa0c, so no re-pin was needed.
-  - Vectors are saved in fixtures/spike/ and replayed by 2 new contract tests.
-- Finding: the responses carry `reasoning_content` after `content`, and that reasoning text repeats "ANSWER: <integer>".
-  - GLM-5.3-flash cannot turn reasoning off.
-  - Fix: the contract and CLI now grade only the raw `"content":"…"` JSON string value. If there is no content field and a reasoning field is present, the response fails closed.
-  - The contract was redeployed with state preserved (tx FdqHexir9UEPwFpsuXQE2bryfJAWmzYDwnAHUBbVdsZo). Contract tests: 30/30; CLI tests: 7/7.
-- Template tuned: `enable_thinking: false`, `max_tokens: 1024`, temperature 0, and an "end with ANSWER: <integer>" system prompt. All 250 responses finished with `stop` and had an ANSWER line in content.
-- 4:12 to 4:21 PM CT: Real runs on testnet:
-  - gsm-sealed-v1 (100 variants, secret seed): Qwen3.8-27B 100/100 AUDITED; GLM-5.3-flash 98/100 AUDITED.
-  - gsm-public-v1 (25 originals): Qwen 25/25 AUDITED; GLM 25/25 AUDITED.
-  - In both suites, 20/20 sampled entries were verified on-chain, and the draw was called by a non-owner.
-  - Gap: Qwen 0.0 pts, GLM 2.0 pts. That is a ceiling result. GLM's 2 misses are lego-template literal readings, and neither was in the sample.
-  - Credits used: about $0.06 of $10, estimated from usage tokens.
-- 4:24 PM CT: `npm run verify` now defaults to fixtures/real (the mock rehearsal moved to `npm run verify:demo`). Tamper runs on the real sealed Qwen fixture and rejects 9/9 lies. README and page now show the real numbers.
-- Payout / nearAddress for the submission: **yossiazulay.near** (mainnet).
+## 2026-11-11
 
-## Next (to Fri Nov 13 noon CT)
-- Demo video script and an X post draft (Yossi posts).
-- Final critique pass (Claude/Codex review only), then Yossi submits with nearAddress yossiazulay.near.
+- Contract v1, CLI, static page and README written. The contract was deployed to `sealedbench-hk26.testnet`.
+- NEAR AI attestation verified with no key (DCAP UpToDate, report_data binding, MRCONFIGID = app_compose, RTMR3
+  replay). The Qwen3.8-27B and GLM-5.3-flash TEE signers were pinned.
+- DEV-ONLY mock rehearsal on testnet: two runs AUDITED and the inflated cheat run FAILED.
+- Published https://github.com/jazulay/sealed-bench (MIT).
+
+## 2026-11-12
+
+- About 4:08 PM: the byte-exact NEAR AI signature spike passed for both models (vectors in `fixtures/spike/`).
+- 4:12–4:21 PM: real GSM8K v1 runs, all AUDITED:
+  - Qwen: 25/25 public, 100/100 sealed.
+  - GLM: 25/25 public, 98/100 sealed.
+  - About $0.06 of credit.
+- 4:44 PM: the external review (`FIXES.md`) arrived. On-chain work stopped until the P0 fixes were in contract v2.
+- v2 written. It covers P0-1 to P0-6 plus P1-1, 1-3, 1-4, 1-7, 1-8 and 1-12. Tests: 41 contract tests, 9 CLI tests.
+- v2 deployed to a fresh account, `sealedbench-v2-hk26.testnet`. Wasm sha256 `599d76f8…140f`. The admin is
+  `sealedbench-admin-hk26.testnet`. Signers re-pinned from fresh UpToDate attestations.
+- 4:54 PM: PREREGISTRATION.md pushed, before any AIME inference:
+  - H1: public > sealed by 10–30 points.
+  - Paired bootstrap; a gap counts as detected only if the CI lower bound is above 0.
+- After pre-registration:
+  - `base9` could not produce 4 distinct variants, so its base range was widened to 5–20.
+  - `gen` now redraws duplicate questions.
+  - Both changes came before inference.
+- 4:55–5:20 PM: every published run redone on v2 through the full protocol. All draws were called by
+  `sealedbench-drawer-hk26.testnet`, a non-owner account run by the same operator. Results:
+  - aime-public-v1 / aime-sealed-v1:
+    - Qwen 18/25 vs 83/100, gap −11 [−29, +5].
+    - GLM 22/25 vs 77/100, gap +11 [−5, +26].
+    - No detected gap for either model (pre-registered rule).
+    - Truncations at 4096 tokens are graded wrong: Qwen 3 public, 15 sealed; GLM 1 public, 18 sealed.
+  - gsm-public-v2 / gsm-sealed-v2:
+    - Qwen 25/25 vs 100/100.
+    - GLM 24/25 vs 100/100.
+    - A ceiling result.
+  - Mock rehearsal on v2: `demo-mock-sealed-v3` AUDITED. `demo-mock-cheat-v3` FAILED, with the bond paid to the drawer.
+  - Credits: about $0.50 for v2 (AIME $0.44, GSM $0.06). About $0.62 in total, including v1 and the probe.
+- `verify` and `tamper` rewritten to be fail-closed (P0-10, P0-11). `attest` no longer writes into fixtures (P0-9).
+  README honesty pass done (P0-7, P0-8).
+- The site config now points at the v2 contract.
+- Payout account for the submission: **yossiazulay.near** (mainnet), chosen by Yossi.
+
+## Open
+
+- P1-10: lock the contract by deleting its full-access key, and make a reproducible build. Docker is not available
+  here.
+- P1-2: storage charging.
+- Optional: a deliberately contaminated control.
+- Demo video and X post draft. Yossi posts and submits.
