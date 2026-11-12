@@ -1,11 +1,14 @@
-//! Sealed Bench: sampled on-chain audits of private AI evaluations.
+//! Sealed Bench v2: sampled on-chain audits of private AI evaluations.
 //!
-//! Flow: commit_suite -> start_run (per model, chain nonce) -> commit_run (run root + full
-//! grade vector, score computed on-chain) -> draw_challenge (permissionless, after a delay,
-//! one shared sample for every run) -> reveal (owner, before deadline) -> AUDITED / FAILED.
+//! Flow: commit_suite -> start_run (per model, chain nonce, signer set snapshotted) -> commit_run
+//! (run root + full grade vector before a commit deadline, score computed on-chain) -> draw_challenge
+//! (permissionless, after a delay, one shared sample for every run; uncommitted runs past their
+//! deadline become ABANDONED, publicly) -> reveal (owner, in a LATER block than the draw, before the
+//! reveal deadline) -> AUDITED / FAILED. The bond goes back to the owner only if every run is AUDITED;
+//! otherwise it goes to whoever drew the challenge (or called `expire`).
 
 use near_sdk::store::{IterableMap, LookupMap};
-use near_sdk::{env, near, require, AccountId, BorshStorageKey, NearToken, PanicOnDefault, Promise};
+use near_sdk::{env, near, require, AccountId, BorshStorageKey, Gas, NearToken, PanicOnDefault, Promise};
 
 pub mod verify;
 use verify::*;
@@ -14,6 +17,11 @@ pub const MIN_BOND: NearToken = NearToken::from_millinear(100); // 0.1 NEAR (nom
 pub const MAX_N: u32 = 4096;
 pub const MAX_K: u32 = 64;
 pub const MAX_REVEAL_BATCH: usize = 8;
+pub const MAX_TEMPLATE_BYTES: usize = 4096;
+pub const MAX_NOTE_BYTES: usize = 512;
+pub const MAX_MODELS_PER_SUITE: usize = 8;
+pub const MIN_COMMIT_WINDOW: u64 = 10;
+pub const VERSION: &str = "sealed-bench-v2";
 
 #[derive(BorshStorageKey)]
 #[near]
@@ -21,6 +29,7 @@ enum Key {
     Suites,
     Runs,
     Signers,
+    Roots,
 }
 
 #[near(serializers = [borsh, json])]
@@ -30,6 +39,8 @@ pub enum RunStatus {
     Committed,
     Audited,
     Failed,
+    /// Started but not committed before its commit deadline. Public and permanent.
+    Abandoned,
 }
 
 #[near(serializers = [borsh, json])]
@@ -41,6 +52,8 @@ pub struct SignerPin {
     pub attestation_sha256: String,
     pub pinned_height: u64,
     pub note: String,
+    /// Set by `revoke_signer`. A revoked pin is left out of every run started afterwards.
+    pub revoked_height: Option<u64>,
 }
 
 #[near(serializers = [borsh, json])]
@@ -57,6 +70,8 @@ pub struct Suite {
     pub commit_height: u64,
     pub challenge_delay: u64,
     pub reveal_window: u64,
+    /// A run must be committed within this many blocks of its start_run, or it becomes ABANDONED.
+    pub commit_window: u64,
     pub models: Vec<String>,
     pub last_run_commit_height: u64,
     pub challenge: Option<Vec<u32>>,
@@ -64,7 +79,10 @@ pub struct Suite {
     pub draw_seed: Option<String>,
     pub drawn_by: Option<AccountId>,
     pub reveal_deadline: Option<u64>,
-    pub bond_returned: bool,
+    /// Who the bond is owed to once the suite is settled: the owner if every run is AUDITED,
+    /// otherwise whoever drew the challenge (or called `expire`).
+    pub bond_payee: Option<AccountId>,
+    pub bond_paid: bool,
 }
 
 #[near(serializers = [borsh, json])]
@@ -74,6 +92,9 @@ pub struct Run {
     pub model: String,
     pub nonce: String,
     pub start_height: u64,
+    pub commit_deadline: u64,
+    /// Snapshot of the model's non-revoked pinned signer addresses at start_run. Only these count.
+    pub signers: Vec<String>,
     pub run_root: Option<String>,
     pub grades: Option<String>,
     pub score: Option<u32>,
@@ -124,9 +145,21 @@ pub struct AuditView {
     pub revealed: u32,
     pub sample_correct: u32,
     pub challenge: Option<Vec<u32>>,
+    pub draw_height: Option<u64>,
+    pub drawn_by: Option<AccountId>,
     pub reveal_deadline: Option<u64>,
+    pub signers: Vec<String>,
     pub fail_reason: Option<String>,
     pub claim: String,
+}
+
+#[near(serializers = [json])]
+pub struct OwnerRecordEntry {
+    pub suite_id: String,
+    pub root: String,
+    pub model: String,
+    pub status: RunStatus,
+    pub score: Option<u32>,
 }
 
 #[near(contract_state)]
@@ -136,6 +169,8 @@ pub struct SealedBench {
     suites: IterableMap<String, Suite>,
     runs: LookupMap<String, Run>,
     signers: LookupMap<String, Vec<SignerPin>>,
+    /// suite root -> suite id. The same committed set cannot be reused in a second suite.
+    roots: LookupMap<String, String>,
 }
 
 fn run_key(suite_id: &str, model: &str) -> String {
@@ -151,6 +186,7 @@ impl SealedBench {
             suites: IterableMap::new(Key::Suites),
             runs: LookupMap::new(Key::Runs),
             signers: LookupMap::new(Key::Signers),
+            roots: LookupMap::new(Key::Roots),
         }
     }
 
@@ -164,16 +200,31 @@ impl SealedBench {
         let a = from_hex(&address).unwrap_or_default();
         require!(a.len() == 20, "address must be 20 bytes");
         require!(hex32(&attestation_sha256).is_ok(), "attestation_sha256 must be 32-byte hex");
+        require!(note.len() <= MAX_NOTE_BYTES, "note too long");
         let pin = SignerPin {
             address: format!("0x{}", to_hex(&a)),
             attestation_sha256: attestation_sha256.to_lowercase(),
             pinned_height: env::block_height(),
             note,
+            revoked_height: None,
         };
         let mut list = self.signers.get(&model).cloned().unwrap_or_default();
-        if !list.iter().any(|p| p.address == pin.address) {
-            list.push(pin);
-        }
+        require!(!list.iter().any(|p| p.address == pin.address), "address already pinned for this model (revoked pins stay revoked)");
+        require!(list.len() < 16, "too many pins for this model");
+        env::log_str(&format!("EVENT pin_signer {model} {}", pin.address));
+        list.push(pin);
+        self.signers.insert(model, list);
+    }
+
+    /// Revoke a pin. Runs already started keep their snapshot; later runs do not get this address.
+    pub fn revoke_signer(&mut self, model: String, address: String) {
+        require!(env::predecessor_account_id() == self.admin, "admin only");
+        let addr = format!("0x{}", to_hex(&from_hex(&address).unwrap_or_default()));
+        let mut list = self.signers.get(&model).cloned().unwrap_or_default();
+        let p = list.iter_mut().find(|p| p.address == addr).unwrap_or_else(|| env::panic_str("no such pin"));
+        require!(p.revoked_height.is_none(), "already revoked");
+        p.revoked_height = Some(env::block_height());
+        env::log_str(&format!("EVENT revoke_signer {model} {addr}"));
         self.signers.insert(model, list);
     }
 
@@ -189,24 +240,33 @@ impl SealedBench {
         request_template: String,
         challenge_delay_blocks: u64,
         reveal_window_blocks: u64,
+        commit_window_blocks: u64,
         note: String,
     ) {
         require!(!suite_id.is_empty() && suite_id.len() <= 64 && !suite_id.contains('|'), "bad suite id");
         require!(self.suites.get(&suite_id).is_none(), "suite exists (commitments are permanent)");
         require!(hex32(&root).is_ok(), "root must be 32-byte hex");
+        let root_hex = to_hex(&hex32(&root).unwrap());
+        require!(self.roots.get(&root_hex).is_none(), "root already committed in another suite");
         require!(n >= 1 && n <= MAX_N, "bad n");
         require!(k >= 1 && k <= n && k <= MAX_K, "bad k");
         require!(
             request_template.contains("{MODEL}") && request_template.contains("{NONCE}") && request_template.contains("{QUESTION}"),
             "template needs {MODEL} {NONCE} {QUESTION}"
         );
+        require!(request_template.len() <= MAX_TEMPLATE_BYTES, "request_template over 4096 bytes");
+        if let Err(e) = template_policy(&request_template) {
+            env::panic_str(&e);
+        }
+        require!(note.len() <= MAX_NOTE_BYTES, "note over 512 bytes");
         require!(challenge_delay_blocks >= 1 && reveal_window_blocks >= 10, "bad windows");
+        require!(commit_window_blocks >= MIN_COMMIT_WINDOW, "commit window must be at least 10 blocks");
         let bond = env::attached_deposit();
         require!(bond >= MIN_BOND, "attach a bond of at least 0.1 NEAR");
         let suite = Suite {
             id: suite_id.clone(),
             owner: env::predecessor_account_id(),
-            root: hex32(&root).map(|r| to_hex(&r)).unwrap(),
+            root: root_hex.clone(),
             n,
             k,
             request_template,
@@ -215,6 +275,7 @@ impl SealedBench {
             commit_height: env::block_height(),
             challenge_delay: challenge_delay_blocks,
             reveal_window: reveal_window_blocks,
+            commit_window: commit_window_blocks,
             models: vec![],
             last_run_commit_height: 0,
             challenge: None,
@@ -222,9 +283,11 @@ impl SealedBench {
             draw_seed: None,
             drawn_by: None,
             reveal_deadline: None,
-            bond_returned: false,
+            bond_payee: None,
+            bond_paid: false,
         };
         env::log_str(&format!("EVENT commit_suite {suite_id} root={} n={n} k={k}", suite.root));
+        self.roots.insert(root_hex, suite_id.clone());
         self.suites.insert(suite_id, suite);
     }
 
@@ -235,7 +298,9 @@ impl SealedBench {
         require!(env::predecessor_account_id() == suite.owner, "suite owner only");
         require!(suite.challenge.is_none(), "challenge already drawn; suite is closed");
         require!(valid_model_id(&model), "bad model id");
-        require!(self.signers.get(&model).map_or(false, |l| !l.is_empty()), "no pinned signer for model");
+        let signers: Vec<String> = self.signers.get(&model).map_or(vec![], |l| l.iter().filter(|p| p.revoked_height.is_none()).map(|p| p.address.clone()).collect());
+        require!(!signers.is_empty(), "no pinned signer for model");
+        require!(suite.models.len() < MAX_MODELS_PER_SUITE, "too many models in this suite");
         let key = run_key(&suite_id, &model);
         require!(self.runs.get(&key).is_none(), "run exists (runs are permanent)");
         let mut seed = env::random_seed();
@@ -250,6 +315,8 @@ impl SealedBench {
             model: model.clone(),
             nonce: nonce.clone(),
             start_height: env::block_height(),
+            commit_deadline: env::block_height() + suite.commit_window,
+            signers,
             run_root: None,
             grades: None,
             score: None,
@@ -273,6 +340,7 @@ impl SealedBench {
         let key = run_key(&suite_id, &model);
         let mut run = self.runs.get(&key).cloned().unwrap_or_else(|| env::panic_str("no such run"));
         require!(run.status == RunStatus::Started, "run not in Started state");
+        require!(env::block_height() <= run.commit_deadline, "commit deadline passed (run is abandoned)");
         require!(hex32(&run_root).is_ok(), "run_root must be 32-byte hex");
         require!(grades.len() == suite.n as usize && grades.bytes().all(|b| b == b'0' || b == b'1'), "grades must be n chars of 0/1");
         let score = grades.bytes().filter(|b| *b == b'1').count() as u32;
@@ -290,16 +358,28 @@ impl SealedBench {
 
     // ---------------- anyone: challenge ----------------
 
-    /// Permissionless. Allowed once every started run is committed and `challenge_delay` blocks have
-    /// passed since the last run commit. First call wins; one sample shared by all runs.
+    /// Permissionless. Allowed once every started run is committed or past its commit deadline
+    /// (those become ABANDONED here), and `challenge_delay` blocks have passed since the last run
+    /// commit. First call wins; one sample shared by all runs.
     pub fn draw_challenge(&mut self, suite_id: String) -> Vec<u32> {
         let mut suite = self.suite_or_panic(&suite_id);
         require!(suite.challenge.is_none(), "already drawn");
         require!(!suite.models.is_empty(), "no runs");
+        let mut committed = 0;
         for m in &suite.models {
-            let r = self.runs.get(&run_key(&suite_id, m)).unwrap();
-            require!(r.status == RunStatus::Committed, "every started run must be committed first");
+            let key = run_key(&suite_id, m);
+            let mut r = self.runs.get(&key).cloned().unwrap();
+            if r.status == RunStatus::Started {
+                require!(env::block_height() > r.commit_deadline, "every started run must be committed (or past its commit deadline) first");
+                r.status = RunStatus::Abandoned;
+                r.fail_reason = Some("not committed before the commit deadline".into());
+                env::log_str(&format!("EVENT abandoned {suite_id} {m}"));
+                self.runs.insert(key, r);
+            } else if r.status == RunStatus::Committed {
+                committed += 1;
+            }
         }
+        require!(committed > 0, "no committed runs");
         let earliest = suite.last_run_commit_height + suite.challenge_delay;
         require!(env::block_height() >= earliest, format!("too early: draw allowed from block {earliest}"));
         let seed = env::random_seed();
@@ -325,11 +405,16 @@ impl SealedBench {
         let key = run_key(&suite_id, &model);
         let mut run = self.runs.get(&key).cloned().unwrap_or_else(|| env::panic_str("no such run"));
         require!(run.status == RunStatus::Committed, "run is not awaiting reveal");
+        // A reveal in the draw's own block (e.g. batched with draw_challenge in one transaction)
+        // could revert the draw whenever it hits a bad index, which would let the owner re-roll it.
+        require!(env::block_height() > suite.draw_height.unwrap(), "reveal must be in a later block than the draw");
 
         if env::block_height() > suite.reveal_deadline.unwrap() {
             run.status = RunStatus::Failed;
             run.fail_reason = Some("reveal deadline passed".into());
             self.runs.insert(key, run);
+            self.settle(&mut suite, None);
+            self.suites.insert(suite_id, suite);
             return RunStatus::Failed;
         }
 
@@ -343,6 +428,8 @@ impl SealedBench {
                 run.status = RunStatus::Failed;
                 run.fail_reason = Some(format!("idx {}: {}", it.idx, res.reason));
                 self.runs.insert(key, run);
+                self.settle(&mut suite, None);
+                self.suites.insert(suite_id, suite);
                 return RunStatus::Failed;
             }
             run.revealed.push(it.idx);
@@ -358,35 +445,58 @@ impl SealedBench {
         }
         let status = run.status.clone();
         self.runs.insert(key, run);
-
-        // Return the nominal bond once every run in the suite is AUDITED.
-        if !suite.bond_returned
-            && suite.models.iter().all(|m| self.runs.get(&run_key(&suite_id, m)).map_or(false, |r| r.status == RunStatus::Audited))
-        {
-            suite.bond_returned = true;
-            Promise::new(suite.owner.clone()).transfer(suite.bond).detach();
-            self.suites.insert(suite_id, suite);
-        }
+        self.settle(&mut suite, None);
+        self.suites.insert(suite_id, suite);
         status
     }
 
-    /// Permissionless: after the reveal deadline, any run not AUDITED becomes FAILED.
+    /// Permissionless. Before the draw: runs past their commit deadline become ABANDONED. After the
+    /// reveal deadline: runs not AUDITED become FAILED. Returns how many runs changed. If that settles
+    /// the suite with a forfeited bond and nobody drew, the caller is the payee.
     pub fn expire(&mut self, suite_id: String) -> u32 {
-        let suite = self.suite_or_panic(&suite_id);
-        let deadline = suite.reveal_deadline.unwrap_or_else(|| env::panic_str("challenge not drawn"));
-        require!(env::block_height() > deadline, "deadline not reached");
-        let mut failed = 0;
+        let mut suite = self.suite_or_panic(&suite_id);
+        let h = env::block_height();
+        let mut changed = 0;
         for m in &suite.models {
             let key = run_key(&suite_id, m);
             let mut r = self.runs.get(&key).cloned().unwrap();
-            if r.status == RunStatus::Committed {
+            if r.status == RunStatus::Started && h > r.commit_deadline {
+                r.status = RunStatus::Abandoned;
+                r.fail_reason = Some("not committed before the commit deadline".into());
+            } else if r.status == RunStatus::Committed && suite.reveal_deadline.map_or(false, |d| h > d) {
                 r.status = RunStatus::Failed;
                 r.fail_reason = Some("reveal deadline passed".into());
-                self.runs.insert(key, r);
-                failed += 1;
+            } else {
+                continue;
             }
+            env::log_str(&format!("EVENT expired {suite_id} {m} {:?}", r.status));
+            self.runs.insert(key, r);
+            changed += 1;
         }
-        failed
+        self.settle(&mut suite, Some(env::predecessor_account_id()));
+        self.suites.insert(suite_id, suite);
+        changed
+    }
+
+    /// Anyone can retry paying a settled bond (e.g. after a failed transfer).
+    pub fn claim_bond(&mut self, suite_id: String) {
+        let mut suite = self.suite_or_panic(&suite_id);
+        require!(suite.bond_payee.is_some(), "suite not settled");
+        require!(!suite.bond_paid, "bond already paid");
+        self.pay_bond(&mut suite);
+        self.suites.insert(suite_id, suite);
+    }
+
+    #[private]
+    pub fn on_bond_paid(&mut self, suite_id: String) -> bool {
+        let ok = env::promise_result_checked(0, 64).is_ok();
+        if !ok {
+            let mut suite = self.suite_or_panic(&suite_id);
+            suite.bond_paid = false; // keep it claimable
+            env::log_str(&format!("EVENT bond_transfer_failed {suite_id}"));
+            self.suites.insert(suite_id, suite);
+        }
+        ok
     }
 
     // ---------------- views ----------------
@@ -403,8 +513,32 @@ impl SealedBench {
         self.suites.get(&suite_id).cloned()
     }
 
-    pub fn list_suites(&self) -> Vec<String> {
-        self.suites.keys().cloned().collect()
+    pub fn version(&self) -> String {
+        VERSION.into()
+    }
+
+    pub fn list_suites(&self, from_index: Option<u32>, limit: Option<u32>) -> Vec<String> {
+        let from = from_index.unwrap_or(0) as usize;
+        let lim = limit.unwrap_or(100).min(100) as usize;
+        self.suites.keys().skip(from).take(lim).cloned().collect()
+    }
+
+    /// Every run in every suite this owner committed (including FAILED and ABANDONED ones), so suite
+    /// shopping is visible. Paginated over suites.
+    pub fn owner_record(&self, owner: AccountId, from_index: Option<u32>, limit: Option<u32>) -> Vec<OwnerRecordEntry> {
+        let from = from_index.unwrap_or(0) as usize;
+        let lim = limit.unwrap_or(100).min(100) as usize;
+        let mut out = vec![];
+        for (id, s) in self.suites.iter().skip(from).take(lim) {
+            if s.owner != owner {
+                continue;
+            }
+            for m in &s.models {
+                let r = self.runs.get(&run_key(id, m)).unwrap();
+                out.push(OwnerRecordEntry { suite_id: id.clone(), root: s.root.clone(), model: m.clone(), status: r.status.clone(), score: r.score });
+            }
+        }
+        out
     }
 
     pub fn get_run(&self, suite_id: String, model: String) -> Option<Run> {
@@ -416,10 +550,11 @@ impl SealedBench {
         let run = self.runs.get(&run_key(&suite_id, &model)).cloned().unwrap_or_else(|| env::panic_str("no such run"));
         let claim = match run.status {
             RunStatus::Audited => format!(
-                "Owner-reported score {}/{}; {}/{} sampled entries verified on NEAR. Not the probability the score is correct; says nothing about benchmark quality.",
+                "Owner-reported score {}/{}; {}/{} randomly sampled entries matched TEE-signed responses and re-graded on NEAR. A spot check, not a proof: unsampled entries are unchecked. Says nothing about benchmark quality.",
                 run.score.unwrap_or(0), suite.n, run.revealed.len(), suite.k
             ),
             RunStatus::Failed => format!("FAILED: {}", run.fail_reason.clone().unwrap_or_default()),
+            RunStatus::Abandoned => "ABANDONED: the owner started this run but never committed it".into(),
             _ => "Audit in progress".into(),
         };
         AuditView {
@@ -432,7 +567,10 @@ impl SealedBench {
             revealed: run.revealed.len() as u32,
             sample_correct: run.sample_correct,
             challenge: suite.challenge,
+            draw_height: suite.draw_height,
+            drawn_by: suite.drawn_by,
             reveal_deadline: suite.reveal_deadline,
+            signers: run.signers,
             fail_reason: run.fail_reason,
             claim,
         }
@@ -458,6 +596,39 @@ impl SealedBench {
         self.suites.get(id).cloned().unwrap_or_else(|| env::panic_str("no such suite"))
     }
 
+    /// Once every run is terminal, decide who the bond is owed to and pay it.
+    fn settle(&mut self, suite: &mut Suite, caller: Option<AccountId>) {
+        if suite.bond_payee.is_some() {
+            return;
+        }
+        let statuses: Vec<RunStatus> = suite.models.iter().map(|m| self.runs.get(&run_key(&suite.id, m)).unwrap().status.clone()).collect();
+        if statuses.is_empty() || statuses.iter().any(|s| *s == RunStatus::Started || *s == RunStatus::Committed) {
+            return;
+        }
+        let payee = if statuses.iter().all(|s| *s == RunStatus::Audited) {
+            suite.owner.clone()
+        } else {
+            suite.drawn_by.clone().or(caller).unwrap_or_else(|| suite.owner.clone())
+        };
+        env::log_str(&format!("EVENT settled {} bond_to={payee}", suite.id));
+        suite.bond_payee = Some(payee);
+        self.pay_bond(suite);
+    }
+
+    fn pay_bond(&mut self, suite: &mut Suite) {
+        suite.bond_paid = true;
+        let to = suite.bond_payee.clone().unwrap();
+        Promise::new(to)
+            .transfer(suite.bond)
+            .then(Promise::new(env::current_account_id()).function_call(
+                "on_bond_paid".to_string(),
+                format!("{{\"suite_id\":{}}}", json_string(&suite.id)).into_bytes(),
+                NearToken::from_near(0),
+                Gas::from_tgas(5),
+            ))
+            .detach();
+    }
+
     fn check_inner(&self, suite: &Suite, run: &Run, it: &RevealItem) -> CheckResult {
         let mut res = CheckResult {
             ok: false,
@@ -478,6 +649,12 @@ impl SealedBench {
         // 1. suite Merkle proof over (idx, salt, answer, question)
         if it.suite_proof.len() != tree_depth(suite.n) {
             fail!("suite proof has wrong length");
+        }
+        if !is_salt(&it.salt) {
+            fail!("salt must be 32-byte lowercase hex (64 chars)");
+        }
+        if it.answer.unsigned_abs() >= MAX_ANSWER_ABS {
+            fail!("answer key out of range");
         }
         let leaf = item_leaf(it.idx, &it.salt, it.answer, &it.question);
         match merkle_root_from_proof(leaf, it.idx, &it.suite_proof) {
@@ -518,11 +695,10 @@ impl SealedBench {
             Err(e) => fail!("signature: {e}"),
         };
         res.recovered_signer = Some(addr.clone());
-        let pinned = self.signers.get(&run.model).cloned().unwrap_or_default();
-        if !pinned.iter().any(|p| p.address == addr) {
-            fail!("signature not from a pinned signer for {}", run.model);
+        if !run.signers.iter().any(|p| *p == addr) {
+            fail!("signature not from a signer pinned for {} when this run started", run.model);
         }
-        // 6. deterministic re-grade: last ANSWER inside the raw `content` value (never reasoning_content)
+        // 6. deterministic re-grade: choices[0].message.content of a finished (stop) response, strict integer
         res.model_answer = response_answer(&it.response);
         res.correct = res.model_answer == Some(it.answer);
         if (res.correct as u8) != it.grade {

@@ -1,7 +1,7 @@
 {
- "fetched_at": "2026-11-11T20:20:37.575Z",
- "nonce": "eb2fbdbbc9a3d73988c80bfdee2910e5f66198aad2f6f3a7c467ec8d6769c9e5",
- "report_sha256": "c06d7b9478d16d1aec6c9cb2b20645b5abce6c1b167a5471a3a5cbc3dd467b0a",
+ "fetched_at": "2026-11-12T22:52:33.291Z",
+ "nonce": "6158f62b07be7d4b9989295d1500939906165230010f7d6f3f1889ecc587ff7c",
+ "report_sha256": "e3525ed711a9588dc676f51c75a6a52a6b3af5aa5d5b59be4a619c165065ec5a",
  "signing_address": "0x835ab53d20294ef795906dff21ae4c045336aa26",
  "checks": {
   "nonce_echo": "ok",

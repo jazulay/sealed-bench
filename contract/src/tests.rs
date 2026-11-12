@@ -38,28 +38,29 @@ fn bad_signatures_rejected() {
 }
 
 #[test]
-fn extract_answer_cases() {
-    assert_eq!(extract_answer("so ANSWER: 42"), Some(42));
-    assert_eq!(extract_answer("ANSWER: 1 then ANSWER: 7"), Some(7));
-    assert_eq!(extract_answer("ANSWER: **$1,234**"), Some(1234));
-    assert_eq!(extract_answer("ANSWER: -5"), Some(-5));
-    assert_eq!(extract_answer("ANSWER: 12,\n"), Some(12));
-    assert_eq!(extract_answer("ANSWER: none"), None);
-    assert_eq!(extract_answer("no marker 42"), None);
-    assert_eq!(extract_answer("ANSWER: 1234567890123456789"), None);
+fn shared_parser_cases() {
+    // The same table is checked by the CLI (cli/test/lib.test.ts).
+    let v: near_sdk::serde_json::Value = near_sdk::serde_json::from_str(include_str!("../../fixtures/parser-cases.json")).unwrap();
+    for c in v["content"].as_array().unwrap() {
+        let (txt, want) = (c[0].as_str().unwrap(), c[1].as_i64());
+        assert_eq!(parse_final_answer(txt), want, "content case {txt:?}");
+    }
+    for c in v["bodies"].as_array().unwrap() {
+        let (raw, want) = (c[0].as_str().unwrap(), c[1].as_i64());
+        assert_eq!(response_answer(raw), want, "body case: {}", c[2]);
+    }
 }
 
 #[test]
-fn response_answer_ignores_reasoning_content() {
-    // Shape of real NEAR AI Cloud GLM/Qwen bodies: reasoning_content comes after content.
-    let raw = r#"{"id":"x","choices":[{"index":0,"message":{"role":"assistant","content":"17 \u00d7 3 = 51\n\nANSWER: 51","reasoning_content":"They want ANSWER: <integer>. Maybe ANSWER: 50?"},"finish_reason":"stop"}]}"#;
-    assert_eq!(response_answer(raw), Some(51));
-    assert_eq!(extract_answer(raw), Some(50)); // naive last-marker read hits the reasoning text
-    // escaped quotes inside content do not end the region
-    let raw2 = r#"{"message":{"content":"he said \"ANSWER: 3\" but ANSWER: 4","reasoning_content":"ANSWER: 9"}}"#;
-    assert_eq!(response_answer(raw2), Some(4));
-    assert_eq!(response_answer(r#"{"message":{"content":null,"reasoning_content":"ANSWER: 9"}}"#), None);
-    assert_eq!(response_answer("plain ANSWER: 5"), Some(5));
+fn salt_and_template_policy() {
+    assert!(is_salt(&"ab".repeat(32)));
+    assert!(!is_salt(&"AB".repeat(32)));
+    assert!(!is_salt(&format!("0x{}", "ab".repeat(31))));
+    assert!(!is_salt("ab\n12"));
+    assert!(template_policy(TEMPLATE).is_ok());
+    assert!(template_policy(&TEMPLATE.replace("\"temperature\":0,", "\"temperature\":0.7,")).is_err());
+    assert!(template_policy(&TEMPLATE.replace("\"stream\":false", "\"stream\":false,\"n\":8")).is_err());
+    assert!(template_policy(&TEMPLATE.replace("\"max_tokens\"", "\"temperature\":1,\"max_tokens\"")).is_err());
 }
 
 #[test]
@@ -150,6 +151,10 @@ fn sign_eip191(sk: &SigningKey, text: &str) -> String {
     format!("0x{}", to_hex(&out))
 }
 
+fn body(i: usize, ans: i64) -> String {
+    format!(r#"{{"id":"chatcmpl-{i}","choices":[{{"message":{{"content":"work...\nANSWER: {ans}"}},"finish_reason":"stop"}}]}}"#)
+}
+
 struct Item {
     salt: String,
     answer: i64,
@@ -189,7 +194,7 @@ fn setup() -> Fx {
     let suite_levels = build_tree(&leaves);
     let root = to_hex(&suite_levels.last().unwrap()[0]);
     ctx(1, 101, NearToken::from_millinear(100), 2);
-    c.commit_suite("s1".into(), root, N, K, TEMPLATE.into(), 5, 50, "unit".into());
+    c.commit_suite("s1".into(), root, N, K, TEMPLATE.into(), 5, 50, 20, "unit".into());
     Fx { c, items, suite_levels, height: 101, key }
 }
 
@@ -212,7 +217,7 @@ fn do_run(fx: &mut Fx, model: &str, key: &SigningKey) -> RunArt {
     for (i, it) in fx.items.iter().enumerate() {
         let req = build_request(TEMPLATE, model, &nonce, &it.question);
         let ans = if i % 2 == 0 { it.answer } else { it.answer + 1 };
-        let resp = format!(r#"{{"id":"chatcmpl-{i}","choices":[{{"message":{{"content":"work...\nANSWER: {ans}"}}}}]}}"#);
+        let resp = body(i, ans);
         let rh = to_hex(&sha256(req.as_bytes()));
         let sh = to_hex(&sha256(resp.as_bytes()));
         let sig = sign_eip191(key, &signed_text(model, &rh, &sh));
@@ -271,8 +276,9 @@ fn honest_run_is_audited_and_bond_returned() {
     assert_eq!(st, RunStatus::Audited);
     let a = fx.c.get_audit("s1".into(), MODEL.into());
     assert_eq!(a.revealed, K);
-    assert!(a.claim.contains("sampled entries verified"));
-    assert!(fx.c.get_suite("s1".into()).unwrap().bond_returned);
+    assert!(a.claim.contains("randomly sampled entries matched TEE-signed responses"));
+    assert_eq!(a.signers, vec![eth_address(&key)]);
+    assert_eq!(fx.c.get_suite("s1".into()).unwrap().bond_payee, Some(accounts(1)));
 }
 
 #[test]
@@ -300,7 +306,7 @@ fn expect_fail(mutate: impl Fn(&mut RevealItem), needle: &str) {
     assert_eq!(fx.c.reveal("s1".into(), MODEL.into(), vec![it]), RunStatus::Failed);
     let run = fx.c.get_run("s1".into(), MODEL.into()).unwrap();
     assert!(run.fail_reason.unwrap().contains(needle));
-    assert!(!fx.c.get_suite("s1".into()).unwrap().bond_returned);
+    assert!(fx.c.get_suite("s1".into()).unwrap().bond_payee != Some(accounts(1)));
 }
 
 #[test]
@@ -338,7 +344,7 @@ fn wrong_signer_fails_even_with_consistent_commitments() {
     ctx(1, fx.height + 1, NearToken::from_near(0), 4);
     let it = reveal_item(&fx, &ra, ch[0]);
     let v = fx.c.check_reveal("s1".into(), MODEL.into(), it.clone());
-    assert!(v.reason.contains("not from a pinned signer"), "{}", v.reason);
+    assert!(v.reason.contains("not from a signer pinned"), "{}", v.reason);
     assert_eq!(v.recovered_signer.unwrap(), eth_address(&rogue));
     assert_eq!(fx.c.reveal("s1".into(), MODEL.into(), vec![it]), RunStatus::Failed);
 }
@@ -356,7 +362,7 @@ fn inflated_grade_vector_fails_regrade() {
     let mut leaves = vec![];
     for (i, it) in fx.items.iter().enumerate() {
         let req = build_request(TEMPLATE, MODEL, &nonce, &it.question);
-        let resp = format!("ANSWER: {}", it.answer + 100); // always wrong
+        let resp = body(i, it.answer + 100); // always wrong
         let rh = to_hex(&sha256(req.as_bytes()));
         let sh = to_hex(&sha256(resp.as_bytes()));
         let sig = sign_eip191(&key, &signed_text(MODEL, &rh, &sh));
@@ -388,7 +394,7 @@ fn stale_nonce_response_fails() {
     let mut grades = vec![];
     for (i, it) in fx.items.iter().enumerate() {
         let req = build_request(TEMPLATE, MODEL, &fake_nonce, &it.question);
-        let resp = format!("ANSWER: {}", it.answer);
+        let resp = body(i, it.answer);
         let rh = to_hex(&sha256(req.as_bytes()));
         let sh = to_hex(&sha256(resp.as_bytes()));
         let sig = sign_eip191(&key, &signed_text(MODEL, &rh, &sh));
@@ -420,9 +426,9 @@ fn shared_sample_across_runs() {
     let i1: Vec<_> = ch.iter().map(|i| reveal_item(&fx, &ra1, *i)).collect();
     let i2: Vec<_> = ch.iter().map(|i| reveal_item(&fx, &ra2, *i)).collect();
     assert_eq!(fx.c.reveal("s1".into(), MODEL.into(), i1), RunStatus::Audited);
-    assert!(!fx.c.get_suite("s1".into()).unwrap().bond_returned);
+    assert!(fx.c.get_suite("s1".into()).unwrap().bond_payee != Some(accounts(1)));
     assert_eq!(fx.c.reveal("s1".into(), m2.into(), i2), RunStatus::Audited);
-    assert!(fx.c.get_suite("s1".into()).unwrap().bond_returned);
+    assert_eq!(fx.c.get_suite("s1".into()).unwrap().bond_payee, Some(accounts(1)));
 }
 
 #[test]
@@ -441,8 +447,140 @@ fn draw_with_uncommitted_run_panics() {
     let mut fx = setup();
     ctx(1, 102, NearToken::from_near(0), 3);
     fx.c.start_run("s1".into(), MODEL.into());
-    ctx(3, 500, NearToken::from_near(0), 9);
+    ctx(3, 110, NearToken::from_near(0), 9); // before the commit deadline (102 + 20)
     fx.c.draw_challenge("s1".into());
+}
+
+// ---------- v2 regression tests (review P0-1..P0-6) ----------
+
+#[test]
+#[should_panic(expected = "reveal must be in a later block than the draw")]
+fn p0_1_reveal_in_draw_block_rejected() {
+    // An owner batching draw_challenge + reveal in one transaction could revert bad draws and retry.
+    let mut fx = setup();
+    let key = fx.key.clone();
+    let ra = do_run(&mut fx, MODEL, &key);
+    let ch = draw(&mut fx);
+    ctx(1, fx.height, NearToken::from_near(0), 4); // same block as the draw
+    fx.c.reveal("s1".into(), MODEL.into(), vec![reveal_item(&fx, &ra, ch[0])]);
+}
+
+#[test]
+fn p0_2_signer_pinned_after_start_does_not_count() {
+    // Owner self-signs, then (as admin) pins their own key after start_run: still rejected.
+    let mut fx = setup();
+    let rogue = SigningKey::from_slice(&[0x07u8; 32]).unwrap();
+    let ra = do_run(&mut fx, MODEL, &rogue);
+    ctx(0, fx.height + 1, NearToken::from_near(0), 1);
+    fx.c.pin_signer(MODEL.into(), eth_address(&rogue), "ef".repeat(32), "late pin".into());
+    let ch = draw(&mut fx);
+    ctx(1, fx.height + 1, NearToken::from_near(0), 4);
+    let v = fx.c.check_reveal("s1".into(), MODEL.into(), reveal_item(&fx, &ra, ch[0]));
+    assert!(v.reason.contains("when this run started"), "{}", v.reason);
+}
+
+#[test]
+#[should_panic(expected = "no pinned signer")]
+fn p0_2_revoked_signer_not_snapshotted() {
+    let mut fx = setup();
+    let key = fx.key.clone();
+    ctx(0, 102, NearToken::from_near(0), 1);
+    fx.c.revoke_signer(MODEL.into(), eth_address(&key));
+    assert!(fx.c.get_signers(MODEL.into())[0].revoked_height.is_some());
+    ctx(1, 103, NearToken::from_near(0), 3);
+    fx.c.start_run("s1".into(), MODEL.into());
+}
+
+#[test]
+fn p0_3_uncommitted_run_is_abandoned_and_bond_forfeited() {
+    let mut fx = setup();
+    let key = fx.key.clone();
+    let m2 = "z-ai/glm-5.3-flash";
+    ctx(0, fx.height, NearToken::from_near(0), 1);
+    fx.c.pin_signer(m2.into(), eth_address(&key), "cd".repeat(32), "".into());
+    let ra = do_run(&mut fx, MODEL, &key);
+    ctx(1, fx.height + 1, NearToken::from_near(0), 3);
+    fx.c.start_run("s1".into(), m2.into()); // never committed
+    // after m2's commit deadline anyone can draw; m2 becomes ABANDONED, publicly
+    fx.height += 40;
+    ctx(3, fx.height, NearToken::from_near(0), 9);
+    let ch = fx.c.draw_challenge("s1".into());
+    assert_eq!(fx.c.get_run("s1".into(), m2.into()).unwrap().status, RunStatus::Abandoned);
+    assert!(fx.c.get_audit("s1".into(), m2.into()).claim.starts_with("ABANDONED"));
+    ctx(1, fx.height + 1, NearToken::from_near(0), 4);
+    let items: Vec<_> = ch.iter().map(|i| reveal_item(&fx, &ra, *i)).collect();
+    assert_eq!(fx.c.reveal("s1".into(), MODEL.into(), items), RunStatus::Audited);
+    let s = fx.c.get_suite("s1".into()).unwrap();
+    assert_eq!(s.bond_payee, Some(accounts(3)), "bond goes to the drawer when any run is not AUDITED");
+    assert!(s.bond_paid);
+    let rec = fx.c.owner_record(accounts(1), None, None);
+    assert_eq!(rec.len(), 2);
+    assert!(rec.iter().any(|e| e.status == RunStatus::Abandoned));
+}
+
+#[test]
+#[should_panic(expected = "commit deadline passed")]
+fn p0_3_late_commit_rejected() {
+    let mut fx = setup();
+    ctx(1, 102, NearToken::from_near(0), 3);
+    fx.c.start_run("s1".into(), MODEL.into());
+    ctx(1, 200, NearToken::from_near(0), 3);
+    fx.c.commit_run("s1".into(), MODEL.into(), "00".repeat(32), "0".repeat(N as usize));
+}
+
+#[test]
+fn p0_3_expire_before_draw_abandons() {
+    let mut fx = setup();
+    ctx(1, 102, NearToken::from_near(0), 3);
+    fx.c.start_run("s1".into(), MODEL.into());
+    ctx(4, 200, NearToken::from_near(0), 3);
+    assert_eq!(fx.c.expire("s1".into()), 1);
+    let s = fx.c.get_suite("s1".into()).unwrap();
+    assert_eq!(s.bond_payee, Some(accounts(4)), "nobody drew, so the expire caller gets the bond");
+}
+
+#[test]
+#[should_panic(expected = "root already committed")]
+fn p0_3_duplicate_root_rejected() {
+    let mut fx = setup();
+    let root = fx.c.get_suite("s1".into()).unwrap().root;
+    ctx(1, 200, NearToken::from_millinear(100), 2);
+    fx.c.commit_suite("s2".into(), root, N, K, TEMPLATE.into(), 5, 50, 20, "".into());
+}
+
+#[test]
+fn p0_4_non_hex_salt_rejected() {
+    expect_fail(|it| it.salt = format!("{}\n", &it.salt[..63]), "salt must be 32-byte lowercase hex");
+}
+
+#[test]
+#[should_panic(expected = "request_template over 4096 bytes")]
+fn p0_6_template_cap() {
+    let mut fx = setup();
+    ctx(1, 200, NearToken::from_millinear(100), 2);
+    let big = TEMPLATE.replace("Solve the problem.", &"x".repeat(5000));
+    fx.c.commit_suite("s2".into(), "11".repeat(32), N, K, big, 5, 50, 20, "".into());
+}
+
+#[test]
+#[should_panic(expected = "temperature")]
+fn p1_4_template_policy_enforced() {
+    let mut fx = setup();
+    ctx(1, 200, NearToken::from_millinear(100), 2);
+    fx.c.commit_suite("s2".into(), "11".repeat(32), N, K, TEMPLATE.replace("\"temperature\":0,", "\"temperature\":1,"), 5, 50, 20, "".into());
+}
+
+#[test]
+fn failed_run_forfeits_bond_to_drawer() {
+    let mut fx = setup();
+    let key = fx.key.clone();
+    let ra = do_run(&mut fx, MODEL, &key);
+    let ch = draw(&mut fx);
+    ctx(1, fx.height + 1, NearToken::from_near(0), 4);
+    let mut it = reveal_item(&fx, &ra, ch[0]);
+    it.grade ^= 1;
+    assert_eq!(fx.c.reveal("s1".into(), MODEL.into(), vec![it]), RunStatus::Failed);
+    assert_eq!(fx.c.get_suite("s1".into()).unwrap().bond_payee, Some(accounts(3)));
 }
 
 #[test]
@@ -520,7 +658,7 @@ fn expire_marks_unrevealed_runs_failed() {
 fn suite_is_permanent() {
     let mut fx = setup();
     ctx(1, 200, NearToken::from_millinear(100), 2);
-    fx.c.commit_suite("s1".into(), "00".repeat(32), N, K, TEMPLATE.into(), 5, 50, "".into());
+    fx.c.commit_suite("s1".into(), "00".repeat(32), N, K, TEMPLATE.into(), 5, 50, 20, "".into());
 }
 
 #[test]
@@ -528,7 +666,7 @@ fn suite_is_permanent() {
 fn bond_required() {
     let mut fx = setup();
     ctx(1, 200, NearToken::from_millinear(1), 2);
-    fx.c.commit_suite("s2".into(), "00".repeat(32), N, K, TEMPLATE.into(), 5, 50, "".into());
+    fx.c.commit_suite("s2".into(), "00".repeat(32), N, K, TEMPLATE.into(), 5, 50, 20, "".into());
 }
 
 #[test]

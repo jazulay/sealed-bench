@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Wallet, verifyMessage } from "ethers";
@@ -14,23 +15,11 @@ test("EIP-191 recovery matches ethers and the contract's vector", async () => {
   assert.equal(L.addressOf("0x" + "11".repeat(32)), w.address.toLowerCase());
 });
 
-test("extractAnswer mirrors the contract", () => {
-  assert.equal(L.extractAnswer("so ANSWER: 42"), 42);
-  assert.equal(L.extractAnswer("ANSWER: 1 then ANSWER: 7"), 7);
-  assert.equal(L.extractAnswer("ANSWER: **$1,234**"), 1234);
-  assert.equal(L.extractAnswer("ANSWER: -5"), -5);
-  assert.equal(L.extractAnswer('{"content":"x\\nANSWER: 12\\n"}'), 12);
-  assert.equal(L.extractAnswer("ANSWER: none"), null);
-  assert.equal(L.extractAnswer("ANSWER: 1234567890123456789"), null);
-});
-
-test("responseAnswer reads only the content field", () => {
-  const raw = '{"message":{"role":"assistant","content":"17 \\u00d7 3 = 51\\n\\nANSWER: 51","reasoning_content":"They want ANSWER: <integer>. Maybe ANSWER: 50?"}}';
-  assert.equal(L.responseAnswer(raw), 51);
-  assert.equal(L.extractAnswer(raw), 50); // naive read hits reasoning
-  assert.equal(L.responseAnswer('{"message":{"content":"he said \\"ANSWER: 3\\" but ANSWER: 4","reasoning_content":"ANSWER: 9"}}'), 4);
-  assert.equal(L.responseAnswer('{"message":{"content":null,"reasoning_content":"ANSWER: 9"}}'), null);
-  assert.equal(L.responseAnswer("plain ANSWER: 5"), 5);
+test("grading parser: the shared cross-language table (same file the contract tests read)", () => {
+  const t = JSON.parse(readFileSync(new URL("../../fixtures/parser-cases.json", import.meta.url), "utf8"));
+  for (const [txt, want] of t.content) assert.equal(L.parseFinalAnswer(txt), want, `content ${JSON.stringify(txt)}`);
+  for (const [raw, want, why] of t.bodies) assert.equal(L.responseAnswer(raw), want, why);
+  assert.ok(L.isSalt("ab".repeat(32)) && !L.isSalt("AB".repeat(32)) && !L.isSalt("ab".repeat(31)));
 });
 
 test("Merkle proofs round-trip for every index and odd sizes", () => {

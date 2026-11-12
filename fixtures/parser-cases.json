@@ -1,0 +1,152 @@
+{
+ "note": "Grading cases shared by the contract (contract/src/tests.rs) and the CLI (cli/test/lib.test.ts). null = graded wrong.",
+ "content": [
+  [
+   "so\n\nANSWER: 42",
+   42
+  ],
+  [
+   "ANSWER: 1 then\nANSWER: 7",
+   7
+  ],
+  [
+   "ANSWER: **$1,234**",
+   1234
+  ],
+  [
+   "**ANSWER: 51**",
+   51
+  ],
+  [
+   "ANSWER:\t8",
+   8
+  ],
+  [
+   "ANSWER: -5",
+   -5
+  ],
+  [
+   "ANSWER: 12.",
+   12
+  ],
+  [
+   "ANSWER: 12\n",
+   12
+  ],
+  [
+   "ANSWER: 0",
+   0
+  ],
+  [
+   "ANSWER: 999999999999999",
+   999999999999999
+  ],
+  [
+   "ANSWER: 4.9",
+   null
+  ],
+  [
+   "ANSWER: 4/5",
+   null
+  ],
+  [
+   "ANSWER: 4 or maybe 9",
+   null
+  ],
+  [
+   "ANSWER: 40%",
+   null
+  ],
+  [
+   "ANSWER: 4e5",
+   null
+  ],
+  [
+   "ANSWER: 12,\n",
+   null
+  ],
+  [
+   "ANSWER: 1,23",
+   null
+  ],
+  [
+   "ANSWER: 007",
+   null
+  ],
+  [
+   "ANSWER: none",
+   null
+  ],
+  [
+   "no marker 42",
+   null
+  ],
+  [
+   "ANSWER: 1234567890123456",
+   null
+  ],
+  [
+   "ANSWER: 70\nThanks!",
+   null
+  ],
+  [
+   "ANSWER: $\\boxed{70}$",
+   null
+  ],
+  [
+   "ANSWER: 5 (approximately)",
+   null
+  ],
+  [
+   "ANSWER: -",
+   null
+  ]
+ ],
+ "bodies": [
+  [
+   "{\"id\":\"x\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"17 \\u00d7 3 = 51\\n\\nANSWER: 51\",\"reasoning_content\":\"They want ANSWER: <integer>. Maybe ANSWER: 50?\"},\"finish_reason\":\"stop\"}]}",
+   51,
+   "reasoning_content after content is ignored"
+  ],
+  [
+   "{\"choices\":[{\"message\":{\"content\": \"spaced\\nANSWER: 6\"},\"finish_reason\": \"stop\"}]}",
+   6,
+   "whitespace after colons is fine (real JSON parse)"
+  ],
+  [
+   "{\"id\":\"x\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"Try 12. ANSWER: 12\"},\"finish_reason\":\"length\"}]}",
+   null,
+   "max_tokens cut-off is graded wrong"
+  ],
+  [
+   "{\"choices\":[{\"message\":{\"content\":\"ANSWER: 3\"}}]}",
+   null,
+   "no finish_reason"
+  ],
+  [
+   "{\"choices\":[{\"message\":{\"content\":null,\"reasoning_content\":\"ANSWER: 9\"},\"finish_reason\":\"stop\"}]}",
+   null,
+   "null content"
+  ],
+  [
+   "plain ANSWER: 5",
+   null,
+   "not a JSON body"
+  ],
+  [
+   "{\"choices\":[{\"message\":{\"tool\":{\"content\":\"ANSWER: 9\"},\"content\":\"ANSWER: 4\"},\"finish_reason\":\"stop\"}]}",
+   4,
+   "only choices[0].message.content counts"
+  ],
+  [
+   "{\"meta\":{\"content\":\"ANSWER: 9\"},\"choices\":[{\"message\":{\"content\":\"ANSWER: 4\"},\"finish_reason\":\"stop\"}]}",
+   4,
+   "an earlier \"content\" elsewhere is ignored"
+  ],
+  [
+   "{\"choices\":[{\"message\":{\"content\":\"he said \\\"ANSWER: 3\\\" but ANSWER: 4\"},\"finish_reason\":\"stop\"}]}",
+   4,
+   "escaped quotes"
+  ]
+ ]
+}

@@ -1,6 +1,7 @@
 // NEAR AI Cloud client: exact-bytes chat completion, response signature fetch, and attestation check.
 // The API key comes ONLY from the NEARAI_API_KEY env var.
 import { createHash, randomBytes } from "node:crypto";
+import { request as httpsRequest } from "node:https";
 import { recoverSigner, sha256hex, signedText } from "./lib.ts";
 
 export const NEARAI = process.env.NEARAI_BASE_URL ?? "https://cloud-api.near.ai/v1";
@@ -16,14 +17,27 @@ export interface SignedCompletion {
   signature: string; signing_address: string; signature_kind: string; text: string;
 }
 
+function postExact(url: string, body: Buffer, headers: Record<string, string>): Promise<{ ok: boolean; status: number; body: Buffer }> {
+  return new Promise((resolve, reject) => {
+    const req = httpsRequest(url, { method: "POST", headers: { ...headers, "Content-Length": String(body.length) }, timeout: 15 * 60_000 }, (res) => {
+      const chunks: Buffer[] = [];
+      res.on("data", (c: Buffer) => chunks.push(c));
+      res.on("end", () => resolve({ ok: (res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 300, status: res.statusCode ?? 0, body: Buffer.concat(chunks) }));
+      res.on("error", reject);
+    });
+    req.on("timeout", () => req.destroy(new Error("completion timed out after 15 min")));
+    req.on("error", reject);
+    req.end(body);
+  });
+}
+
 /** POST the exact request bytes, keep the exact response bytes, then fetch and check the TEE signature. */
 export async function signedCompletion(model: string, request: string): Promise<SignedCompletion> {
-  const res = await fetch(`${NEARAI}/chat/completions`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key()}`, "Content-Type": "application/json", "x-no-aliasing": "true", "Accept-Encoding": "identity", Accept: "application/json" },
-    body: Buffer.from(request, "utf8"),
+  // node:https instead of fetch: long competition-math answers can take minutes, past undici's 300 s header timeout.
+  const res = await postExact(`${NEARAI}/chat/completions`, Buffer.from(request, "utf8"), {
+    Authorization: `Bearer ${key()}`, "Content-Type": "application/json", "x-no-aliasing": "true", "Accept-Encoding": "identity", Accept: "application/json",
   });
-  const bytes = Buffer.from(await res.arrayBuffer());
+  const bytes = res.body;
   const response = bytes.toString("utf8");
   if (!res.ok) throw new Error(`completion HTTP ${res.status}: ${response.slice(0, 300)}`);
   if (!Buffer.from(response, "utf8").equals(bytes)) throw new Error("response is not round-trippable UTF-8; refusing (hash would not match)");
@@ -37,7 +51,7 @@ export async function signedCompletion(model: string, request: string): Promise<
     break;
   }
   if (!sig) throw new Error(`no signature recorded for ${chat_id}`);
-  if (sig.signature_kind && sig.signature_kind !== "provider_tee") throw new Error(`signature_kind ${sig.signature_kind} is not provider_tee`);
+  if (sig.signature_kind !== "provider_tee") throw new Error(`signature_kind ${sig.signature_kind} is not provider_tee`);
   const expect = signedText(model, sha256hex(request), sha256hex(bytes));
   if (sig.text !== expect) throw new Error(`signed text mismatch:\n got ${sig.text}\nwant ${expect}`);
   if (recoverSigner(sig.text, sig.signature) !== String(sig.signing_address).toLowerCase()) throw new Error("ECDSA signature does not match signing_address");
@@ -61,7 +75,7 @@ function replayRtmr3(eventLog: any): Buffer {
 }
 
 /** Fetch a fresh NEAR model attestation (public, no key) and verify it per docs.near.ai quote-nonce-signer. */
-export async function attest(model: string, opts: { offlineReport?: any; nonce?: string; skipDcap?: boolean } = {}) {
+export async function attest(model: string, opts: { offlineReport?: any; nonce?: string; skipDcap?: boolean; allowStatus?: string[] } = {}) {
   const nonce = opts.nonce ?? randomBytes(32).toString("hex");
   let raw: string;
   if (opts.offlineReport) raw = JSON.stringify(opts.offlineReport);
@@ -82,6 +96,8 @@ export async function attest(model: string, opts: { offlineReport?: any; nonce?:
     const { getCollateralAndVerify } = await import("@phala/dcap-qvl");
     const v: any = await getCollateralAndVerify(hx(m.intel_quote));
     checks.dcap_tcb_status = v.status;
+    // Acceptance policy: only an UpToDate TCB is accepted for pinning (OutOfDate, ConfigurationNeeded, ... are refused).
+    if (v.status !== "UpToDate" && !opts.allowStatus?.includes(v.status)) throw new Error(`DCAP TCB status ${v.status} is not accepted (policy: UpToDate)`);
     if (v.report.type !== "td10") throw new Error("expected a TDX quote");
     const qd = v.report.data;
     if (qd.tdAttributes[0] & 1) throw new Error("TDX debug mode is enabled");

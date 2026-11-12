@@ -14,11 +14,20 @@ export const CONFIG = {
   contractId: process.env.SB_CONTRACT ?? FILE.contractId,
   admin: process.env.SB_ADMIN ?? FILE.admin,
   owner: process.env.SB_OWNER ?? FILE.owner,
-} as { network: string; rpc: string; contractId: string; admin: string; owner: string; explorer: string };
+} as { network: string; rpc: string; contractId: string; admin: string; owner: string; drawer: string; explorer: string; wasm_sha256: string };
 export const provider = new JsonRpcProvider({ url: process.env.NEAR_RPC ?? CONFIG.rpc });
 
-export async function view<T>(method: string, args: Record<string, unknown> = {}): Promise<T> {
-  return (await provider.callFunction({ contractId: CONFIG.contractId, method, args })) as T;
+/** Contract view. Pass `blockId` to pin every read of one verification to the same block. */
+export async function view<T>(method: string, args: Record<string, unknown> = {}, blockId?: number): Promise<T> {
+  const blockQuery: any = blockId ? { blockId } : { finality: "final" };
+  return (await provider.callFunction({ contractId: CONFIG.contractId, method, args, blockQuery } as any)) as T;
+}
+
+/** The latest final block, and the contract's code hash (base58 sha256 of the deployed wasm) at that block. */
+export async function snapshot(): Promise<{ height: number; hash: string; code_hash: string }> {
+  const b: any = await provider.viewBlock({ finality: "final" });
+  const a: any = await provider.viewAccount({ accountId: CONFIG.contractId, blockQuery: { blockId: b.header.height } } as any);
+  return { height: b.header.height, hash: b.header.hash, code_hash: String(a.code_hash) };
 }
 
 function keyFor(accountId: string): string {
@@ -38,6 +47,9 @@ export async function call(signerId: string, method: string, args: Record<string
     waitUntil: "FINAL",
   });
   const tx = res.transaction?.hash ?? res.transaction_outcome?.id;
+  // A panicked call must never print ok:true (review P1-12).
+  if (res.status && typeof res.status === "object" && "Failure" in res.status)
+    throw new Error(`transaction ${tx} failed: ${JSON.stringify(res.status.Failure).slice(0, 400)}`);
   const logs = [res.transaction_outcome, ...(res.receipts_outcome ?? [])].flatMap((o: any) => o?.outcome?.logs ?? []);
   let result: unknown = null;
   const sv = res.status?.SuccessValue;

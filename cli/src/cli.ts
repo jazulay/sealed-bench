@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { createHash, randomBytes } from "node:crypto";
 import * as L from "./lib.ts";
 import { TEMPLATES } from "./templates.ts";
+import { AIME_TEMPLATES } from "./templates_aime.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const argv = process.argv.slice(2);
@@ -34,6 +35,10 @@ export const MOCK_ADDRESS = L.addressOf(MOCK_KEY);
 
 // Public, committed with each suite. Thinking is switched off (Qwen3 honours enable_thinking=false; GLM still
 // returns a short reasoning_content, which the contract ignores: it grades only the `content` field).
+// Competition-math suites: same shape, longer budget. A max_tokens cut-off (finish_reason "length") is graded wrong.
+export const REQUEST_TEMPLATE_AIME =
+  '{"model":"{MODEL}","messages":[{"role":"system","content":"You are taking a math competition test. Solve the problem. Be concise: no restating, no long checks. Your reply must end with one final line of the form ANSWER: <integer> (digits only). Run nonce: {NONCE}"},{"role":"user","content":{QUESTION}}],"temperature":0,"max_tokens":4096,"stream":false,"chat_template_kwargs":{"enable_thinking":false}}';
+
 export const REQUEST_TEMPLATE =
   '{"model":"{MODEL}","messages":[{"role":"system","content":"You are taking a math test. Solve the problem concisely. Your reply must end with one final line of the form ANSWER: <integer> (digits only, no units). Run nonce: {NONCE}"},{"role":"user","content":{QUESTION}}],"temperature":0,"max_tokens":1024,"stream":false,"chat_template_kwargs":{"enable_thinking":false}}';
 
@@ -42,25 +47,39 @@ function gen() {
   const kind = flags.kind ?? "sealed"; // sealed | public
   const seed = flags.seed ?? randomBytes(32).toString("hex");
   const per = Number(flags.per ?? 4);
+  const set = flags.set ?? "gsm"; // gsm | aime
   const r = L.seededRng(seed, suite);
-  let items: { idx: number; salt: string; answer: number; question: string; template: string; gsm8k: number }[];
-  if (kind === "public") {
+  const template = set === "aime" ? REQUEST_TEMPLATE_AIME : REQUEST_TEMPLATE;
+  const policy = L.templatePolicy(template); if (policy) throw new Error(policy);
+  let items: { idx: number; salt: string; answer: number; question: string; template: string; source: string | number }[];
+  if (set === "aime" && kind === "public") {
+    const pub = rd(join(ROOT, "data", "public-aime-25.json")).items;
+    items = pub.map((p: any, idx: number) => ({ idx, salt: r.hex32(), answer: p.answer, question: p.question, template: "original", source: p.source }));
+  } else if (set === "aime") {
+    items = [];
+    for (let v = 0; v < per; v++) for (const t of AIME_TEMPLATES) {
+      const { question, answer } = t.make(r);
+      items.push({ idx: items.length, salt: r.hex32(), answer, question, template: t.id, source: t.source });
+    }
+  } else if (kind === "public") {
     const pub = rd(join(ROOT, "data", "public-gsm8k-25.json")).items;
-    items = pub.map((p: any, idx: number) => ({ idx, salt: r.hex32(), answer: p.answer, question: p.question, template: "original", gsm8k: p.gsm8k_test_index }));
+    items = pub.map((p: any, idx: number) => ({ idx, salt: r.hex32(), answer: p.answer, question: p.question, template: "original", source: p.gsm8k_test_index }));
   } else {
     items = [];
     for (let v = 0; v < per; v++) for (const t of TEMPLATES) {
       const { question, answer } = t.make(r);
       if (!Number.isInteger(answer) || answer <= 0) throw new Error(`template ${t.id} produced ${answer}`);
-      items.push({ idx: items.length, salt: r.hex32(), answer, question, template: t.id, gsm8k: t.gsm8k });
+      items.push({ idx: items.length, salt: r.hex32(), answer, question, template: t.id, source: t.gsm8k });
     }
   }
   const levels = L.buildTree(items.map((it) => L.itemLeaf(it.idx, it.salt, it.answer, it.question)));
   const root = L.rootOf(levels);
   const dir = dirOf();
-  const secret = { suite_id: suite, kind, seed, root, n: items.length, request_template: REQUEST_TEMPLATE, items };
+  if (!items.every((it) => L.isSalt(it.salt) && Number.isSafeInteger(it.answer) && Math.abs(it.answer) < L.MAX_ANSWER_ABS)) throw new Error("bad salt or answer");
+  if (new Set(items.map((i) => i.question)).size !== items.length) throw new Error("duplicate questions in suite");
+  const secret = { suite_id: suite, kind, set, seed, root, n: items.length, request_template: template, items };
   wr(join(dir, "suite.secret.json"), secret);
-  wr(join(dir, "suite.public.json"), { suite_id: suite, kind, root, n: items.length, request_template: REQUEST_TEMPLATE, templates: [...new Set(items.map((i) => i.template))].length, note: kind === "public" ? "public originals from GSM8K test" : "sealed numeric variants; items stay secret except challenged reveals" });
+  wr(join(dir, "suite.public.json"), { suite_id: suite, kind, root, n: items.length, request_template: template, templates: [...new Set(items.map((i) => i.template))].length, note: kind === "public" ? (set === "aime" ? "public originals: 25 AIME 2018-2025 problems" : "public originals from GSM8K test") : (set === "aime" ? "sealed numeric variants of 25 AIME problems, answers computed by code; items stay secret except challenged reveals" : "sealed numeric variants; items stay secret except challenged reveals") });
   out({ ok: true, suite, kind, n: items.length, root, dir, secret_file: join(dir, "suite.secret.json"), warning: kind === "sealed" && !flags.seed ? "seed is secret: keep suite.secret.json out of git" : undefined });
 }
 
@@ -86,8 +105,10 @@ async function infer() {
   const limit = Number(flags.limit ?? s.n);
   // Cross-check the exact request bytes against the contract's own builder before spending any inference.
   const { view } = await nearMod();
-  const onchainReq = await view<string>("build_request_for", { suite_id: s.suite_id, model, question: s.items[0].question });
-  if (onchainReq !== L.buildRequest(s.request_template, model, run.nonce, s.items[0].question)) throw new Error("request bytes differ from contract build_request_for; refusing to run");
+  for (const it of s.items) {
+    const onchainReq = await view<string>("build_request_for", { suite_id: s.suite_id, model, question: it.question });
+    if (onchainReq !== L.buildRequest(s.request_template, model, run.nonce, it.question)) throw new Error(`request bytes differ from contract build_request_for (item ${it.idx}); refusing to run`);
+  }
   const todo = s.items.slice(0, limit).filter((it: any) => !entries[it.idx]?.signature);
   const conc = Number(flags.concurrency ?? (flags.mock ? 1 : 6));
   let failures = 0;
@@ -131,8 +152,23 @@ async function main() {
     case "attest": {
       const { attest } = await import("./nearai.ts");
       const model = need("model");
+      if (flags.offline) { // re-verify a saved raw report (e.g. the pinned one) without the network
+        const rawPath = flags.offline === "true" ? join(ROOT, "fixtures", "attestation", `${slug(model)}.report.raw.json`) : flags.offline;
+        const raw = readFileSync(rawPath, "utf8"); const rep = JSON.parse(raw);
+        const nonce = rep.model_attestations.find((m: any) => m.model_name === model && m.signing_algo === "ecdsa").request_nonce;
+        const a = await attest(model, { offlineReport: rep, nonce });
+        const { view } = await nearMod(); const pins: any[] = await view("get_signers", { model });
+        const sha = L.sha256hex(raw);
+        return out({ ok: true, mode: "offline re-verification of a saved report (DCAP collateral is still fetched from Intel/Phala PCCS)", model, report: rawPath.replace(ROOT + "/", ""), report_sha256: sha, signing_address: a.signing_address, checks: a.checks,
+          pinned_on_chain: pins.map((p) => ({ address: p.address, attestation_sha256: p.attestation_sha256, pinned_height: p.pinned_height, revoked_height: p.revoked_height })),
+          matches_a_pin: pins.some((p) => p.attestation_sha256 === sha && p.address === a.signing_address) });
+      }
       const a = await attest(model);
-      const f = join(ROOT, "fixtures", "attestation", `${slug(model)}.json`);
+      // Fresh reports go to /tmp (or --out DIR) so a judge's clone stays clean; only `--save` (owner, before
+      // pinning) writes into fixtures/attestation/.
+      const outDir = flags.save ? join(ROOT, "fixtures", "attestation") : (flags.out ?? join("/tmp", "sealed-bench-attest"));
+      mkdirSync(outDir, { recursive: true });
+      const f = join(outDir, `${slug(model)}.json`);
       const rawFile = f.replace(/\.json$/, ".report.raw.json");
       writeFileSync(rawFile, a.raw); // exact bytes: sha256(file) == attestation_sha256 pinned on-chain
       wr(f, { fetched_at: new Date().toISOString(), nonce: a.nonce, report_sha256: a.report_sha256, signing_address: a.signing_address, checks: a.checks, raw_report_file: rawFile.replace(ROOT + "/", "") });
@@ -155,7 +191,7 @@ async function main() {
       const k = Number(flags.k ?? Math.min(20, s.n));
       const t = await call(CONFIG.owner, "commit_suite", {
         suite_id: s.suite_id, root: s.root, n: s.n, k, request_template: s.request_template,
-        challenge_delay_blocks: Number(flags.delay ?? 20), reveal_window_blocks: Number(flags.window ?? 7200), note: flags.note ?? s.note,
+        challenge_delay_blocks: Number(flags.delay ?? 20), reveal_window_blocks: Number(flags.window ?? 7200), commit_window_blocks: Number(flags["commit-window"] ?? 14400), note: flags.note ?? s.note,
       }, flags.bond ?? "0.1");
       return out({ ok: true, suite: s.suite_id, root: s.root, n: s.n, k, ...t });
     }
@@ -190,7 +226,9 @@ async function main() {
       const st: any = await view("get_suite", { suite_id: suite });
       const h = await blockHeight(); const from = st.last_run_commit_height + st.challenge_delay;
       if (h < from && !flags.force) return out({ ok: false, reason: `too early: draw allowed from block ${from}, now ${h}` });
-      const t = await call(flags.as ?? CONFIG.owner, "draw_challenge", { suite_id: suite });
+      if (!flags.as) return out({ ok: false, reason: `pass --as <account> (the account that draws; use an account other than the owner, e.g. ${CONFIG.drawer})` });
+      if (flags.as === CONFIG.owner) process.stderr.write("warning: drawing as the suite owner. Anyone may draw; an independent drawer is more convincing.\n");
+      const t = await call(flags.as, "draw_challenge", { suite_id: suite });
       return out({ ok: true, suite, challenge: t.result, ...t });
     }
     case "reveal": {
@@ -215,8 +253,8 @@ async function main() {
         if (status === "Failed") break;
       }
       // Publish everything a third party needs to replay this audit (only challenged items are revealed).
-      const pinned = (await view<any[]>("get_signers", { model })).map((p) => p.address);
-      const fx = { suite: { suite_id: s.suite_id, root: s.root, n: s.n, k: st.k, request_template: s.request_template, challenge: st.challenge, draw_height: st.draw_height, draw_seed: st.draw_seed }, contract: CONFIG.contractId, network: CONFIG.network,
+      const pinned: string[] = r.signers; // the run's signer snapshot taken at start_run
+      const fx = { suite: { suite_id: s.suite_id, root: s.root, n: s.n, k: st.k, request_template: s.request_template, challenge: st.challenge, draw_height: st.draw_height, draw_seed: st.draw_seed, drawn_by: st.drawn_by, owner: st.owner }, contract: CONFIG.contractId, network: CONFIG.network,
         run: { model, nonce: run.nonce, run_root: run.run_root, grades: run.grades }, pinned_signers: pinned,
         revealed: st.challenge.map((i: number) => { const it = s.items[i], e = run.entries[i];
           return { idx: i, salt: it.salt, answer: it.answer, question: it.question, response: e.response, signature: e.signature, grade: e.grade, suite_proof: L.proofOf(sLevels, i), run_proof: L.proofOf(rLevels, i) }; }),

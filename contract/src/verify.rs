@@ -156,79 +156,93 @@ pub fn signed_text(model: &str, req_hash_hex: &str, resp_hash_hex: &str) -> Stri
     format!("{model}:{req_hash_hex}:{resp_hash_hex}")
 }
 
-/// The bytes of the first `"content":"` JSON string value in a raw chat-completion body, up to its
-/// closing unescaped quote (still JSON-escaped). Reasoning models put `reasoning_content` AFTER
-/// `content`, and their reasoning often repeats "ANSWER: <integer>", so grading must only read the
-/// final answer text. The marker cannot occur inside a JSON string value: a quote inside a string
-/// is always escaped as \" so `"content":"` there would read `\"content\":\"`.
-pub fn answer_region(raw: &str) -> Option<&str> {
-    const MARK: &str = "\"content\":\"";
-    match raw.find(MARK) {
-        Some(p) => {
-            let start = p + MARK.len();
-            let b = raw.as_bytes();
-            let mut i = start;
-            while i < b.len() {
-                match b[i] {
-                    b'\\' => i += 2,
-                    b'"' => return Some(&raw[start..i]),
-                    _ => i += 1,
-                }
-            }
-            None
-        }
-        // Not a chat-completion body (unit-test strings): use it whole, unless it carries reasoning.
-        None if raw.contains("reasoning_content") => None,
-        None => Some(raw),
-    }
+/// Answers (keys and model answers) must satisfy |x| < 10^15, so JavaScript numbers hold them exactly.
+pub const MAX_ANSWER_ABS: u64 = 1_000_000_000_000_000;
+
+/// A salt is exactly 64 lowercase hex chars (32 bytes). This keeps the newline-delimited leaf unambiguous.
+pub fn is_salt(s: &str) -> bool {
+    s.len() == 64 && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
-/// Grade input: the final ANSWER inside the response's `content` field only.
-pub fn response_answer(raw: &str) -> Option<i64> {
-    answer_region(raw).and_then(extract_answer)
+/// Request-template policy: deterministic, single-sample decoding. Exactly one `"temperature":0,`,
+/// exactly one `"stream":false`, and no `"n":`, `"best_of"`, `"logit_bias"`, `"seed"` keys.
+/// (A system prompt can still carry hints; it is public in the suite and should be read.)
+pub fn template_policy(t: &str) -> Result<(), String> {
+    if t.matches("\"temperature\"").count() != 1 || !t.contains("\"temperature\":0,") {
+        return Err("template must set \"temperature\":0 exactly once".into());
+    }
+    if t.matches("\"stream\"").count() != 1 || !t.contains("\"stream\":false") {
+        return Err("template must set \"stream\":false exactly once".into());
+    }
+    for k in ["\"n\":", "\"best_of\"", "\"logit_bias\"", "\"seed\""] {
+        if t.contains(k) {
+            return Err(format!("template may not set {k}"));
+        }
+    }
+    Ok(())
 }
 
-/// Take the LAST "ANSWER:" marker in the raw response bytes and parse the integer after it.
-/// Skips spaces, '*', '$' and backslash-escapes; drops thousands separators.
-pub fn extract_answer(response: &str) -> Option<i64> {
-    let pos = response.rfind("ANSWER:")?;
-    let rest = &response[pos + "ANSWER:".len()..];
-    let mut chars = rest.chars().peekable();
-    while let Some(&c) = chars.peek() {
-        if c == ' ' || c == '*' || c == '$' {
-            chars.next();
-        } else {
-            break;
-        }
-    }
-    let mut neg = false;
-    if chars.peek() == Some(&'-') {
-        neg = true;
-        chars.next();
-    }
-    let mut digits = String::new();
-    while let Some(&c) = chars.peek() {
-        if c.is_ascii_digit() {
-            digits.push(c);
-            chars.next();
-        } else if c == ',' {
-            // thousands separator only if followed by a digit
-            let mut look = chars.clone();
-            look.next();
-            if look.peek().map_or(false, |d| d.is_ascii_digit()) {
-                chars.next();
-            } else {
-                break;
-            }
-        } else {
-            break;
-        }
-    }
-    if digits.is_empty() || digits.len() > 18 {
+/// The text that is graded: `choices[0].message.content` of the raw chat-completion body, only if
+/// `choices[0].finish_reason == "stop"`. Anything else (not JSON, other paths, null content, a
+/// max_tokens cut-off with finish_reason "length") yields None, i.e. graded wrong. Reasoning text
+/// (`reasoning_content`) is never read.
+pub fn final_content(raw: &str) -> Option<String> {
+    let v: near_sdk::serde_json::Value = near_sdk::serde_json::from_str(raw).ok()?;
+    let c0 = v.get("choices")?.get(0)?;
+    if c0.get("finish_reason")?.as_str()? != "stop" {
         return None;
     }
-    let v: i64 = digits.parse().ok()?;
+    Some(c0.get("message")?.get("content")?.as_str()?.to_string())
+}
+
+/// Strict final-answer parser over decoded content. Takes the LAST "ANSWER:" and requires, after it:
+/// optional spaces/tabs/'*'/'$', an optional '-', then an integer (plain digits, or 1-3 digits followed
+/// by ",ddd" groups), |x| < 10^15, and then nothing but whitespace and '*', '$', '.' to the end.
+/// So "4.9", "4/5", "4%", "4e5", "4 or maybe 9" and "4\nmore text" all yield None.
+pub fn parse_final_answer(content: &str) -> Option<i64> {
+    let pos = content.rfind("ANSWER:")?;
+    let rest = content[pos + "ANSWER:".len()..].as_bytes();
+    let mut i = 0;
+    while i < rest.len() && matches!(rest[i], b' ' | b'\t' | b'*' | b'$') {
+        i += 1;
+    }
+    let neg = i < rest.len() && rest[i] == b'-';
+    if neg {
+        i += 1;
+    }
+    let start = i;
+    while i < rest.len() && (rest[i].is_ascii_digit() || rest[i] == b',') {
+        i += 1;
+    }
+    let num = &rest[start..i];
+    if num.is_empty() || !num[0].is_ascii_digit() || *num.last().unwrap() == b',' {
+        return None;
+    }
+    let digits: Vec<u8> = if num.contains(&b',') {
+        let groups: Vec<&[u8]> = num.split(|b| *b == b',').collect();
+        if groups[0].is_empty() || groups[0].len() > 3 || groups[1..].iter().any(|g| g.len() != 3) {
+            return None;
+        }
+        groups.concat()
+    } else {
+        num.to_vec()
+    };
+    if !rest[i..].iter().all(|b| b.is_ascii_whitespace() || matches!(b, b'*' | b'$' | b'.')) {
+        return None;
+    }
+    if digits.len() > 15 || (digits.len() > 1 && digits[0] == b'0') {
+        return None;
+    }
+    let v: i64 = core::str::from_utf8(&digits).ok()?.parse().ok()?;
+    if v as u64 >= MAX_ANSWER_ABS {
+        return None;
+    }
     Some(if neg { -v } else { v })
+}
+
+/// Grade input: the strict final answer of a finished response's content.
+pub fn response_answer(raw: &str) -> Option<i64> {
+    final_content(raw).as_deref().and_then(parse_final_answer)
 }
 
 /// Choose k distinct indices in [0, n) from a 32-byte seed (shared by every run in a suite).

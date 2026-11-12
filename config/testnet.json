@@ -1,8 +1,11 @@
 {
   "network": "testnet",
   "rpc": "https://rpc.testnet.fastnear.com",
-  "contractId": "sealedbench-hk26.testnet",
-  "admin": "sealedbench-hk26.testnet",
+  "contractId": "sealedbench-v2-hk26.testnet",
+  "admin": "sealedbench-admin-hk26.testnet",
   "owner": "sealedbench-owner-hk26.testnet",
-  "explorer": "https://testnet.nearblocks.io"
+  "drawer": "sealedbench-drawer-hk26.testnet",
+  "explorer": "https://testnet.nearblocks.io",
+  "wasm_sha256": "599d76f8409002222fe22912655aacb66671ab9a209e5a93a4a77ef60d48140f",
+  "legacy_v1_contract": "sealedbench-hk26.testnet"
 }

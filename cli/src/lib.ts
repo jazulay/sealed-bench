@@ -70,41 +70,51 @@ export function signEip191(privKeyHex: string, text: string): string {
 export const addressOf = (privKeyHex: string) =>
   ("0x" + keccak256("0x" + new SigningKey(privKeyHex).publicKey.slice(4)).slice(-40)).toLowerCase();
 
-/** Mirror of verify.rs answer_region: the first `"content":"` JSON string value (still escaped). */
-export function answerRegion(raw: string): string | null {
-  const MARK = '"content":"';
-  const p = raw.indexOf(MARK);
-  if (p < 0) return raw.includes("reasoning_content") ? null : raw;
-  const start = p + MARK.length;
-  for (let i = start; i < raw.length; ) {
-    if (raw[i] === "\\") i += 2;
-    else if (raw[i] === '"') return raw.slice(start, i);
-    else i += 1;
-  }
+export const MAX_ANSWER_ABS = 10 ** 15; // |x| < 10^15: exact in JS numbers and i64
+/** Mirror of verify.rs is_salt: exactly 64 lowercase hex chars. */
+export const isSalt = (s: string) => /^[0-9a-f]{64}$/.test(s);
+
+/** Mirror of verify.rs template_policy (deterministic, single-sample decoding). */
+export function templatePolicy(t: string): string | null {
+  const count = (k: string) => t.split(k).length - 1;
+  if (count('"temperature"') !== 1 || !t.includes('"temperature":0,')) return 'template must set "temperature":0 exactly once';
+  if (count('"stream"') !== 1 || !t.includes('"stream":false')) return 'template must set "stream":false exactly once';
+  for (const k of ['"n":', '"best_of"', '"logit_bias"', '"seed"']) if (t.includes(k)) return `template may not set ${k}`;
   return null;
 }
-/** Grade input: the last ANSWER inside the response's `content` only (never reasoning_content). */
-export const responseAnswer = (raw: string): number | null => { const r = answerRegion(raw); return r === null ? null : extractAnswer(r); };
 
-/** Last "ANSWER:" marker; skip ' ', '*', '$'; optional '-'; digits with thousands commas; <=18 digits. */
-export function extractAnswer(resp: string): number | null {
-  const pos = resp.lastIndexOf("ANSWER:");
+/** Mirror of verify.rs final_content: choices[0].message.content, only if finish_reason == "stop". */
+export function finalContent(raw: string): string | null {
+  let v: any; try { v = JSON.parse(raw); } catch { return null; }
+  const c0 = v?.choices?.[0];
+  if (!c0 || c0.finish_reason !== "stop") return null;
+  const c = c0?.message?.content;
+  return typeof c === "string" ? c : null;
+}
+
+/** Mirror of verify.rs parse_final_answer (strict integer after the last "ANSWER:"). */
+export function parseFinalAnswer(content: string): number | null {
+  const pos = content.lastIndexOf("ANSWER:");
   if (pos < 0) return null;
-  let i = pos + 7;
-  while (i < resp.length && (resp[i] === " " || resp[i] === "*" || resp[i] === "$")) i++;
-  let neg = false;
-  if (resp[i] === "-") { neg = true; i++; }
-  let digits = "";
-  while (i < resp.length) {
-    const c = resp[i];
-    if (c >= "0" && c <= "9") { digits += c; i++; }
-    else if (c === "," && i + 1 < resp.length && resp[i + 1] >= "0" && resp[i + 1] <= "9") i++;
-    else break;
+  const rest = content.slice(pos + 7);
+  const m = /^[ \t*$]*(-?)([0-9,]*)([\s\S]*)$/.exec(rest)!;
+  const [, neg, num, tail] = m;
+  if (!num || !/[0-9]/.test(num[0]) || num.endsWith(",")) return null;
+  let digits = num;
+  if (num.includes(",")) {
+    const g = num.split(",");
+    if (!g[0] || g[0].length > 3 || g.slice(1).some((x) => x.length !== 3)) return null;
+    digits = g.join("");
   }
-  if (!digits || digits.length > 18) return null;
+  if (!/^[ \t\n\f\r*$.]*$/.test(tail)) return null; // = Rust is_ascii_whitespace plus '*', '$', '.' 
+  if (digits.length > 15 || (digits.length > 1 && digits[0] === "0")) return null;
   const v = Number(digits);
+  if (v >= MAX_ANSWER_ABS) return null;
   return neg ? -v : v;
 }
+
+/** Grade input, as the contract: strict final answer of a finished response's content. */
+export const responseAnswer = (raw: string): number | null => { const c = finalContent(raw); return c === null ? null : parseFinalAnswer(c); };
 
 /** k distinct sorted indices: sha256("sb-draw-v1"||seed||suite_id||ctr_le64) mod n. */
 export function drawIndices(seed: Buffer, suiteId: string, n: number, k: number): number[] {
@@ -130,6 +140,8 @@ export function checkReveal(c: CheckCtx, it: RevealItem): Check {
   const r: Check = { ok: false, reason: "" };
   const fail = (m: string) => ({ ...r, reason: m });
   if (it.idx >= c.n) return fail("idx out of range");
+  if (!isSalt(it.salt)) return fail("salt must be 32-byte lowercase hex (64 chars)");
+  if (!Number.isSafeInteger(it.answer) || Math.abs(it.answer) >= MAX_ANSWER_ABS) return fail("answer key out of range");
   if (it.suite_proof.length !== treeDepth(c.n)) return fail("suite proof has wrong length");
   if (rootFromProof(itemLeaf(it.idx, it.salt, it.answer, it.question), it.idx, it.suite_proof) !== c.suiteRoot)
     return fail("suite Merkle proof does not match committed root");
@@ -143,7 +155,7 @@ export function checkReveal(c: CheckCtx, it: RevealItem): Check {
   if (Number(c.grades[it.idx]) !== it.grade) return fail("grade differs from committed grade vector");
   r.signed_text = signedText(c.model, r.request_sha256, r.response_sha256);
   try { r.recovered_signer = recoverSigner(r.signed_text, it.signature); } catch (e) { return fail(`signature: ${(e as Error).message}`); }
-  if (!c.pinned.map((a) => a.toLowerCase()).includes(r.recovered_signer)) return fail(`signature not from a pinned signer for ${c.model}`);
+  if (!c.pinned.map((a) => a.toLowerCase()).includes(r.recovered_signer)) return fail(`signature not from a signer pinned for ${c.model} when this run started`);
   r.model_answer = responseAnswer(it.response);
   r.correct = r.model_answer === it.answer;
   if (Number(r.correct) !== it.grade) return fail(`re-grade mismatch: model answered ${r.model_answer ?? "none"}, key ${it.answer}, committed grade ${it.grade}`);
