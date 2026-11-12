@@ -15,11 +15,27 @@ This idea comes from Illia's NEAR HACKATHON list: *"AI benchmarking with private
 
 Tracks: `privacy` (primary) and `open`.
 
-> **Current state (Wed Nov 11, 2026).** The protocol is deployed on NEAR testnet and has been rehearsed end to end with a **DEV-ONLY mock signer**. That signer uses a publicly known key; it is not NEAR AI and not a TEE, and its model id says so: `mock/DEV-ONLY-not-a-TEE`.
->
-> The real NEAR AI signers for Qwen3.8-27B and GLM-5.3-flash are already pinned on-chain. Their Intel TDX attestation was verified with `dcap-qvl` before pinning (no API key is needed for that step).
->
-> Real model runs are waiting on a NEAR AI Cloud API key. When they land, `fixtures/real/` and the variant-gap table will hold genuine TEE-signed responses. Until then, every number shown here comes from the mock and proves only that the verification machinery works.
+## Results (real NEAR AI Cloud TEE runs, Thu Nov 12, 2026)
+
+| Model (NEAR AI Cloud, TEE) | Public originals (25) | Sealed variants (100) | Gap | Audit, both suites |
+| --- | --- | --- | --- | --- |
+| `Qwen/Qwen3.8-27B` | 25/25 (100%) | 100/100 (100%) | 0.0 pts | **AUDITED**, 20/20 sampled entries verified |
+| `z-ai/glm-5.3-flash` | 25/25 (100%) | 98/100 (98%) | 2.0 pts | **AUDITED**, 20/20 sampled entries verified |
+
+- **What this shows:** no meaningful public-to-sealed variant gap for these two models. GSM8K is easy for both, so this is a ceiling result. We fixed the suites and the reporting rule before running, and we publish the result as it came out.
+- **GLM's two misses:** both are variants of GSM8K #37 (the "lego" problem). GLM read "sell all his toys" literally and answered 0. Neither miss was in the 20-item sample.
+- **Sample:** a single sample of 20 items is shared by both models, drawn by a non-owner account from NEAR `random_seed` after both runs were committed.
+- **Signatures:** every sampled response carries a `provider_tee` ECDSA signature from NEAR AI's attested model signer, and the contract recovered it on-chain with `env::ecrecover`:
+  - Qwen: `0x835ab53d…aa26`
+  - GLM: `0x3b753b44…fa0c`
+- **Cost:** about 250 inference calls, roughly $0.06 of NEAR AI Cloud credit (computed from the token counts in the signed responses).
+
+**Byte-exact check (Nov 12):**
+- For both models, `sha256(request bytes)` and `sha256(response bytes)` computed locally equal what NEAR AI signed (`MODEL:req:resp`).
+- `ecrecover` returns exactly the pinned signers.
+- The recorded vectors live in `fixtures/spike/` and are replayed by two contract unit tests.
+
+The DEV-ONLY mock rehearsal suites from Nov 11 are kept further down. They use a publicly known key, are labeled `mock/DEV-ONLY-not-a-TEE`, and no claim cites them.
 
 ## Deployed (NEAR testnet)
 
@@ -31,7 +47,16 @@ Tracks: `privacy` (primary) and `open`.
 | Pinned signer `z-ai/glm-5.3-flash` | `0x3b753b4406613c5e70ae640508632b600424fa0c` ([pin tx](https://testnet.nearblocks.io/txns/BGQ1Yy99GdxQbN3A5cbVirmoHKUoYCL685hb4ikk473S)) |
 | DEV-ONLY mock signer | `0xa6c3a19d7bdf8743396362411554a92f74fe9fa3` ([pin tx](https://testnet.nearblocks.io/txns/F1AidK6P6qZaCsfK1AYtxbKgpj1fzJLXn51nVB8XX7go)) |
 
-Rehearsal suites on testnet (all mock):
+Real suites on testnet:
+
+| Suite | Commit | Qwen3.8-27B | GLM-5.3-flash | Draw (non-owner) |
+| --- | --- | --- | --- | --- |
+| `gsm-sealed-v1`, 100 sealed variants, secret seed | [commit_suite](https://testnet.nearblocks.io/txns/3sLmbCT7k1oezuHvdx4CYtEWpWn5GJQM3ENBWs6EDqtC) | 100/100 AUDITED: [start](https://testnet.nearblocks.io/txns/5viv97ALBkSuUakjLdreo1aPTehnSQrmbRkKbUjhew2V) [commit](https://testnet.nearblocks.io/txns/DuYm5atLYBoffE7GPsNCxwrkD2s93tTXjh5Wgvd2GgNM) reveals [1](https://testnet.nearblocks.io/txns/J1jxeUVrhidgSRoCBjitTCyTy2upWmzaXwSLL9YwFiYP) [2](https://testnet.nearblocks.io/txns/FhuixR1dJaVxuchAvX6kW7LysBhEsHvtdhbBNLTtjQi1) [3](https://testnet.nearblocks.io/txns/EP4Rh15TCpHsuCQgtwG2L78TuYjaCvyCmQFmGV6eVUR2) [4](https://testnet.nearblocks.io/txns/AYp7CK5tWohrWNddcQrDTmGx79RTrP1EPK1PLvA5QKcq) | 98/100 AUDITED: [start](https://testnet.nearblocks.io/txns/Hmtcw4Fj9tezeLPd99AcXzZALPEGnwXBytC2hGz7Qnp2) [commit](https://testnet.nearblocks.io/txns/2kryJioRm1a5xMCjKf7NW2QYZd5tsdQTsC8en4pUEnQc) reveals [1](https://testnet.nearblocks.io/txns/3hWob8VRaf5H7SwtKmUxRUkQLcYdwKxYx8Rm2uETbeej) [2](https://testnet.nearblocks.io/txns/9SBYN8p5EfJQQHGv8fqsUAkJHWqbHkCzeNS1CMv5eKna) [3](https://testnet.nearblocks.io/txns/DnXsM6E54kVXLn6KDZNWaW7B2hRki1WuXtWgZeHV1P5Z) [4](https://testnet.nearblocks.io/txns/FQh7WrAqb5Ey6tLwbiXpVMeUHK8UKpbPS2JddBE3ZDfC) | [draw](https://testnet.nearblocks.io/txns/7E16QVernNhChGY1vDPJByCHjUYhWJPGnMqTZtx5E1nx) |
+| `gsm-public-v1`, 25 GSM8K originals | [commit_suite](https://testnet.nearblocks.io/txns/BK1isLNNJCJekjkcctcCTBKQCGtt68E48KnSCfBwDSQC) | 25/25 AUDITED: [start](https://testnet.nearblocks.io/txns/CLwwsUvXkFKJhN7Cz3WnHA8ihuXWZGRjHMWFGSi8EhFU) [commit](https://testnet.nearblocks.io/txns/FFsNvhKaXqT7DoFWHP2BQu9QNqCrL5Cg4tCxQ7E96fGo) reveals [1](https://testnet.nearblocks.io/txns/2D4MZDNcgzWdySCtdm1JrM1QikmwYca8xtJwTb5bLqao) [2](https://testnet.nearblocks.io/txns/4QRJRf75DtFkyUwKLuhBY9NLqsH52rziuZdyLbZnMHg9) [3](https://testnet.nearblocks.io/txns/4ZryBqHYqx1WGZr6UeUWudnK5Sx9HzpDX3F3R19aqAyz) [4](https://testnet.nearblocks.io/txns/FZ6ejKbMRLD43afLoBTgq9sPp1ZLFobwxrZLUrfNgtze) | 25/25 AUDITED: [start](https://testnet.nearblocks.io/txns/8CC1kz9MnoDqWjU2AfotjcwtMzy4dXvDBWkNYcgCHh5K) [commit](https://testnet.nearblocks.io/txns/DNbSLgKGFpDLJ6N62HPfpCrgCxfXQawazz8gN2xsRDxk) reveals [1](https://testnet.nearblocks.io/txns/2Nzqua9aCzTNFoezNbHZMVoWPxs4kPxwpLZRJbFJxs58) [2](https://testnet.nearblocks.io/txns/CmiVzREEVcNze4BxCN4ziCBsxnwQWMw1uUT1Ksn3y9s7) [3](https://testnet.nearblocks.io/txns/HLssYAvgtx9YoAgAjrYLHvTFEFdqXxEywhQpFQUbpG4e) [4](https://testnet.nearblocks.io/txns/VnD6AY9RUa5wsxFJVMuBBFRDmem5A7uzThSzHuWT3Nd) | [draw](https://testnet.nearblocks.io/txns/5eAkJpHFnU4YJfFTXmisgHsxE6Q85yLAUssVoFYz8PRA) |
+
+Both suites returned their bond once every run was AUDITED. The current contract code was deployed in tx [FdqHexir…](https://testnet.nearblocks.io/txns/FdqHexir9UEPwFpsuXQE2bryfJAWmzYDwnAHUBbVdsZo); that version adds content-only grading, and earlier state was kept.
+
+Rehearsal suites on testnet (all mock, Nov 11):
 
 | Suite | Result | Challenge draw | Reveal txs |
 | --- | --- | --- | --- |
@@ -39,7 +64,7 @@ Rehearsal suites on testnet (all mock):
 | `demo-mock-public-v1`, 25 GSM8K originals | 24/25, AUDITED, 20/20 verified | [draw](https://testnet.nearblocks.io/txns/2u6c8txuRbEHZaTRVv3jQrzmYCgrqTcWjkbVd7ZFvFEW) | [1](https://testnet.nearblocks.io/txns/8AxyzZMWxQwPVU99kxHTNviBLeNTGe76Ue7fhzXB8VzP) [2](https://testnet.nearblocks.io/txns/4DbV7GZaUtwpXXc2gParjWQEZ3wN75ywT3djQ1DiSM2G) [3](https://testnet.nearblocks.io/txns/P6ZsupE1e62BJsSGetUE87Sptr3U6GLvS1dKtohPhMM) [4](https://testnet.nearblocks.io/txns/5EUFMqoq4nrApRsZ9FZudvfSbQESytqV9syRpdDVjwaf) |
 | `demo-mock-cheat-v2`: the owner inflates grades to 100/100 | **FAILED** on the first wrong item | [draw](https://testnet.nearblocks.io/txns/2Ddwwjxk8HLSDXjfrpeBLP2Jbc6QJNP8sFEuaFj74QEf) | [reveal → FAILED](https://testnet.nearblocks.io/txns/HDJGCXKGsc6f6wfhRbEpe8hBKrtCRihihZtqBKzvTtmF) |
 
-Gas: a reveal batch of 5 items burned about 7.9 Tgas.
+Gas: a reveal batch of 5 items burns about 8 to 9 Tgas, measured at 8.7 Tgas for 5 real Qwen responses.
 
 ## Try it: do X → see Y
 
@@ -48,8 +73,10 @@ Requirements: Node ≥ 22.18 (it runs the TypeScript directly) and network acces
 1. **Install.** Run `git clone https://github.com/jazulay/sealed-bench && cd sealed-bench && npm ci`.
    → You should see `added N packages` and no errors.
 
-2. **Replay the recorded audits.** Run `npm run verify`.
-   → You should see JSON with `"ok": true` and `"mode": "offline replay + on-chain views (testnet RPC, no key)"`, plus one result each for `demo-mock-public-v1` and `demo-mock-sealed-v1`. In each result, every value in `checks` is `true`:
+2. **Replay the real audits.** Run `npm run verify`.
+   → You should see JSON with `"ok": true`, `"mode": "offline replay + on-chain views (testnet RPC, no key)"`, and 4 results: `gsm-sealed-v1` and `gsm-public-v1`, each for `Qwen/Qwen3.8-27B` and `z-ai/glm-5.3-flash`.
+
+   In each result, every value in `checks` is `true`:
    - `challenge_rederived_from_chain_seed`
    - `all_challenged_revealed`
    - `all_reveals_pass_offline`
@@ -59,10 +86,14 @@ Requirements: Node ≥ 22.18 (it runs the TypeScript directly) and network acces
    - `onchain_signers_match`
    - `onchain_check_reveal_view_ok`
 
-   You should also see `"onchain_status": "Audited"` and `"claim": "Owner-reported score 77/100; 20/20 sampled entries verified."`, followed by a `warning` that the signer is the DEV-ONLY mock.
-   For a fully offline run, use `npm run verify -- --offline`, which reports `"mode": "offline replay only"`.
+   You should also see `"onchain_status": "Audited"` and `"signers": ["0x835ab53d20294ef795906dff21ae4c045336aa26"]` for Qwen (`0x3b753b4406613c5e70ae640508632b600424fa0c` for GLM). The claims read:
+   - `"Owner-reported score 100/100; 20/20 sampled entries verified."` (Qwen, sealed)
+   - `"Owner-reported score 98/100; 20/20 sampled entries verified."` (GLM, sealed)
 
-3. **Try to cheat.** Run `npm run tamper`.
+   To replay with no network at all, run `npm run verify -- --offline`, which reports `"mode": "offline replay only"`.
+   The mock rehearsal replays with `npm run verify:demo`.
+
+3. **Try to cheat on a real TEE-signed entry.** Run `npm run tamper`. It uses `fixtures/real/reveal.gsm-sealed-v1.Qwen_Qwen3.8-27B.json`, item 0.
    → You should see 10 cases. `honest` is `accepted` both offline and by the contract's `check_reveal` view. The other nine are all `rejected`, each with the contract's own reason:
 
    | Case | Rejected because |
@@ -72,8 +103,8 @@ Requirements: Node ≥ 22.18 (it runs the TypeScript directly) and network acces
    | change the answer key | `suite Merkle proof does not match committed root` |
    | swap the question | `suite Merkle proof does not match committed root` |
    | flip the grade | `run Merkle proof does not match…` |
-   | borrow another item's signature | `run Merkle proof does not match…` |
-   | self-sign with a consistent run root | `signature not from a pinned signer` |
+   | borrow another item's NEAR AI signature | `run Merkle proof does not match…` |
+   | self-sign with a consistent run root | `signature not from a pinned signer for Qwen/Qwen3.8-27B` |
    | stale nonce | `run Merkle proof does not match…` |
    | reveal an index that wasn't drawn | `index not in challenge set` |
 
@@ -83,7 +114,10 @@ Requirements: Node ≥ 22.18 (it runs the TypeScript directly) and network acces
    → You should see `"ok": false`, `"all_reveals_pass_offline": false`, and `"onchain_status": "Failed"`. The owner claimed 100/100, and the contract stored `re-grade mismatch: model answered … key 24, committed grade 1` permanently.
 
 5. **Open the results page.** Open `web/index.html` in a browser (it is static, with no server); run `npm run web` first to refresh `web/data.js` from fixtures and chain.
-   → You should see three suite cards with AUDITED/FAILED badges, the revealed items with their recovered signer addresses, explorer links for every reveal transaction, and the public-to-sealed gap table. The gap is mock-only for now: 96.0% vs 77.0%.
+   → You should see:
+   - the public-to-sealed gap table (Qwen 100.0% vs 100.0%; GLM 100.0% vs 98.0%);
+   - two real suite cards with four AUDITED runs, each listing its revealed items with the recovered NEAR AI signer and an explorer link for every reveal transaction;
+   - a separate "Protocol rehearsal (DEV-ONLY mock signer)" section with the three mock suites, including the FAILED cheat.
 
 6. **Check that NEAR AI's TEE signer is genuine (no key).** Run `node cli/src/cli.ts attest --model Qwen/Qwen3.8-27B`.
    → You should see `"signing_address": "0x835ab53d…aa26"` and these checks:
@@ -99,12 +133,14 @@ Requirements: Node ≥ 22.18 (it runs the TypeScript directly) and network acces
    → You should see `"root": "2445da5762846ec77ba1c90c4c310ef18bb81e4756f227299dbb1fa032e9dfcb"`, which is the same root as `get_suite` on-chain. Real sealed suites use a random secret seed instead.
 
 8. **Run the contract unit tests.** Run `cd contract && cargo test`; it needs Rust 1.99, pinned in `rust-toolchain.toml`.
-   → You should see `test result: ok. 27 passed`. The tests include:
+   → You should see `test result: ok. 30 passed`. The tests include:
    - an ethers.js-generated EIP-191 vector recovered with `env::ecrecover`;
+   - **two real NEAR AI Cloud signature vectors** (`fixtures/spike/`) recovered to the pinned Qwen and GLM signers;
+   - content-only answer extraction;
    - k256-signed lifecycle tests: honest → AUDITED with the bond returned, tampered response, question, or answer → FAILED, a wrong signer, inflated grades, a stale nonce, a draw that comes too early, an uncommitted run, a deadline timeout, and `expire`.
 
 9. **Run the CLI unit tests.** Run `npm test`.
-   → You should see `pass 6`. These check that the JS mirror of the contract matches: the same EIP-191 vector, Merkle proofs for odd sizes, answer extraction, and all 25 templates yielding positive integer answers over 200 seeds.
+   → You should see `pass 7`. These check that the JS mirror of the contract matches: the same EIP-191 vector, Merkle proofs for odd sizes, answer extraction (including content-only grading), and all 25 templates yielding positive integer answers over 200 seeds.
 
 10. **Rehearse the whole protocol on your own testnet accounts (optional, free).**
     1. Create two accounts with the faucet: `near account create-account sponsor-by-faucet-service <you>.testnet autogenerate-new-keypair save-to-legacy-keychain network-config testnet create`.
@@ -124,7 +160,7 @@ Requirements: Node ≥ 22.18 (it runs the TypeScript directly) and network acces
     ```
     → Every command prints a JSON object with `tx` and `explorer` links. `status` shows `"status": "Audited"`. Add `--cheat-inflate` to `commit-run` and `reveal` returns `"status": "Failed"`.
 
-11. **Live inference (requires a NEAR AI Cloud key, owner only).** Run `NEARAI_API_KEY=… node cli/src/cli.ts infer --suite <s> --model Qwen/Qwen3.8-27B`. It:
+11. **Live inference (requires a NEAR AI Cloud key, owner only).** Run `NEARAI_API_KEY=… node cli/src/cli.ts infer --suite <s> --model Qwen/Qwen3.8-27B --concurrency 5`, which is how the real runs were made. It:
     - checks the request bytes against the contract's `build_request_for` view before spending anything;
     - posts the exact bytes with `x-no-aliasing: true` and `Accept-Encoding: identity`;
     - keeps the raw response bytes;
@@ -152,7 +188,8 @@ reveal(items, batch ≤ 8) ──► per item:
    3 run Merkle proof (idx, req_hash, resp_hash, signature, grade)
    4 grade == committed grade vector[idx]
    5 env::ecrecover(EIP-191(MODEL:req:resp)) ∈ pinned signers(model)
-   6 last "ANSWER: <int>" in the raw response bytes == answer ⇔ grade == 1
+   6 last "ANSWER: <int>" inside the raw `"content":"…"` value == answer ⇔ grade == 1
+     (reasoning_content is never read: reasoning models repeat "ANSWER:" there)
    any failure → FAILED (permanent);  all k pass → AUDITED, bond returned
                            expire() ◄──────────────────────────────────────── anyone, after the deadline
 ```
@@ -168,10 +205,13 @@ reveal(items, batch ≤ 8) ──► per item:
 ## Sample data
 
 - **Public set:** `data/public-gsm8k-25.json` holds 25 original problems from the GSM8K test split ([openai/grade-school-math](https://github.com/openai/grade-school-math), MIT).
+- **Request template (public, part of each suite commitment):** `temperature: 0`, `max_tokens: 1024`, `chat_template_kwargs.enable_thinking: false` (Qwen3 honours it; GLM still emits a short `reasoning_content`, which grading ignores). The system prompt asks for a final line `ANSWER: <integer>` and embeds the run nonce. All 250 responses finished with `stop`.
 - **Sealed set:** `cli/src/templates.ts` holds one code template per public problem. The generator draws new numbers, code computes the answer, and the default is 4 variants per template, so 100 sealed items. Answers are correct by construction.
 - **Headline:** the public-to-sealed variant gap. Contamination is one possible explanation for a gap, not a proven one.
 - **Deviation from plan:** the design doc mentions about 100 public originals, but we ship the 25 originals the templates come from.
 - **Fixtures:**
+  - `fixtures/real/`: published reveals for the four real AUDITED runs (`npm run verify` default).
+  - `fixtures/spike/`: the byte-exact signature vectors.
   - `fixtures/demo/`: published reveals for the AUDITED mock runs.
   - `fixtures/demo-fail/`: the FAILED cheat run.
   - `fixtures/attestation/`: verified NEAR AI attestation reports.
@@ -197,6 +237,7 @@ reveal(items, batch ≤ 8) ──► per item:
   - **Unsampled entries.** They are only checked probabilistically, under the bound above.
   - **Re-rolls.** These aren't prevented: an owner could query many times and commit the best response. Temperature 0 and the per-run nonce reduce this, and we disclose it.
   - **Owner visibility.** The owner sees and grades the set. It is hidden from model vendors and the public, not from the owner.
+- **Ceiling effect:** GSM8K-style variants are too easy for these two models to show a gap, since both score 98–100%. A harder sealed set would be needed for a contamination signal, and this demo does not claim one.
 - **Revealed items are spent:** each reveal removes 20 items from the sealed set.
 - **Randomness:** block producers can slightly bias `random_seed`, which is acceptable on testnet. A production version would use commit-reveal or VRF randomness.
 - **Replay:** recorded replay proves the verification logic and the on-chain state. It does not prove the live NEAR AI service is up.

@@ -1,0 +1,12 @@
+{
+ "model": "z-ai/glm-5.3-flash",
+ "recorded": "2026-11-12 (CT)",
+ "note": "Byte-exact spike: exact request bytes, exact response bytes, and the NEAR AI Cloud /v1/signature result (signature_kind provider_tee, ecdsa).",
+ "request": "{\"model\":\"z-ai/glm-5.3-flash\",\"messages\":[{\"role\":\"system\",\"content\":\"You are taking a math test. Think briefly, then end your reply with one final line of the form ANSWER: <integer>. Run nonce: abc123\"},{\"role\":\"user\",\"content\":\"Toula bought 3 dozen donuts at $68 per dozen and 2 dozen cupcakes at $80 per dozen. Total cost?\"}],\"temperature\":0,\"max_tokens\":800,\"stream\":false,\"reasoning_effort\":\"none\"}",
+ "response": "{\"id\":\"3969f996de55470e9134960c28e14f05\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"Toula spent 3 × $68 = $204 on donuts and 2 × $80 = $160 on cupcakes, for a total of $204 + $160 = $364.\\n\\nANSWER: 364\",\"reasoning_content\":\"3 × 68 = 204; 2 × 80 = 160; total 364.\"},\"finish_reason\":\"stop\",\"logprobs\":null,\"matched_stop\":154827}],\"model\":\"z-ai/glm-5.3-flash\",\"created\":1794521299,\"usage\":{\"prompt_tokens\":73,\"total_tokens\":144,\"completion_tokens\":71,\"prompt_tokens_details\":{\"cached_tokens\":0},\"reasoning_tokens\":23,\"completion_tokens_details\":{\"reasoning_tokens\":23}}}",
+ "text": "z-ai/glm-5.3-flash:6bd27b4b748aa814fec157d48c4b296ea73f6e1330c3cdfd7a000caf744bc235:e2f23f46ae4a08c8abc6c381c0440f5e51d2909bcbc4cb558b505e9b002921ae",
+ "signature": "0x09bedefdc020341b6d7222549e260d5e82c6beb0119fb91b359582281b794fd83d64f7413ea2b52a52c92566a722b9cf88cc830805df85e483b5bda17ea813341b",
+ "signing_address": "0x3b753b4406613c5e70ae640508632b600424fa0c",
+ "signing_algo": "ecdsa",
+ "signature_kind": "provider_tee"
+}

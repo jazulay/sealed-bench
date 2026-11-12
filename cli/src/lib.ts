@@ -70,6 +70,22 @@ export function signEip191(privKeyHex: string, text: string): string {
 export const addressOf = (privKeyHex: string) =>
   ("0x" + keccak256("0x" + new SigningKey(privKeyHex).publicKey.slice(4)).slice(-40)).toLowerCase();
 
+/** Mirror of verify.rs answer_region: the first `"content":"` JSON string value (still escaped). */
+export function answerRegion(raw: string): string | null {
+  const MARK = '"content":"';
+  const p = raw.indexOf(MARK);
+  if (p < 0) return raw.includes("reasoning_content") ? null : raw;
+  const start = p + MARK.length;
+  for (let i = start; i < raw.length; ) {
+    if (raw[i] === "\\") i += 2;
+    else if (raw[i] === '"') return raw.slice(start, i);
+    else i += 1;
+  }
+  return null;
+}
+/** Grade input: the last ANSWER inside the response's `content` only (never reasoning_content). */
+export const responseAnswer = (raw: string): number | null => { const r = answerRegion(raw); return r === null ? null : extractAnswer(r); };
+
 /** Last "ANSWER:" marker; skip ' ', '*', '$'; optional '-'; digits with thousands commas; <=18 digits. */
 export function extractAnswer(resp: string): number | null {
   const pos = resp.lastIndexOf("ANSWER:");
@@ -128,7 +144,7 @@ export function checkReveal(c: CheckCtx, it: RevealItem): Check {
   r.signed_text = signedText(c.model, r.request_sha256, r.response_sha256);
   try { r.recovered_signer = recoverSigner(r.signed_text, it.signature); } catch (e) { return fail(`signature: ${(e as Error).message}`); }
   if (!c.pinned.map((a) => a.toLowerCase()).includes(r.recovered_signer)) return fail(`signature not from a pinned signer for ${c.model}`);
-  r.model_answer = extractAnswer(it.response);
+  r.model_answer = responseAnswer(it.response);
   r.correct = r.model_answer === it.answer;
   if (Number(r.correct) !== it.grade) return fail(`re-grade mismatch: model answered ${r.model_answer ?? "none"}, key ${it.answer}, committed grade ${it.grade}`);
   return { ...r, ok: true, reason: "all checks passed" };

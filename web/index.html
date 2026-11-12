@@ -40,16 +40,20 @@ document.getElementById("meta").innerHTML = `Contract <a href="${D.explorer}/add
 const pct = (a, b) => (100 * a / b).toFixed(1) + "%";
 const byModel = {};
 for (const s of D.suites) for (const r of s.runs) (byModel[r.model] ??= {})[s.suite_id] = { ...r, kind: /public/.test(s.suite_id) ? "public" : "sealed" };
-const gapRows = Object.entries(byModel).map(([m, x]) => {
+const gapRows = Object.entries(byModel).filter(([m]) => !m.startsWith("mock/")).map(([m, x]) => {
   const pub = Object.values(x).find((r) => r.kind === "public" && r.audit?.status === "Audited");
   const sea = Object.values(x).find((r) => r.kind === "sealed" && r.audit?.status === "Audited");
   if (!pub || !sea) return "";
   return `<tr><td>${esc(m)}</td><td>${pct(pub.score, pub.n)}</td><td>${pct(sea.score, sea.n)}</td><td><b>${((100 * pub.score / pub.n) - (100 * sea.score / sea.n)).toFixed(1)} pts</b></td></tr>`;
 }).join("");
 if (gapRows) document.getElementById("gap").appendChild($(`<div class="card"><h2 style="margin:0 0 8px">Public-to-sealed variant gap</h2>
-  <div class="mut">Same 25 GSM8K problems: the public originals versus 100 sealed numeric variants. A large gap suggests memorization of the public set.</div>
+  <div class="mut">Same 25 GSM8K problems: the public originals versus 100 sealed numeric variants (4 per problem), TEE inference on NEAR AI Cloud, temperature 0. A large gap would suggest memorization of the public set; a small one is what these two models show here. GSM8K is easy for both, so this is a ceiling result, published as pre-committed.</div>
   <table><tr><th>model</th><th>public originals</th><th>sealed variants</th><th>gap</th></tr>${gapRows}</table></div>`));
-for (const s of D.suites) {
+const isMock = (s) => s.runs.every((r) => r.model.startsWith("mock/"));
+const ordered = [...D.suites.filter((s) => !isMock(s)), ...D.suites.filter(isMock)];
+let mockHeader = false;
+for (const s of ordered) {
+  if (isMock(s) && !mockHeader) { mockHeader = true; document.getElementById("suites").appendChild($(`<h2 style="margin:28px 0 0">Protocol rehearsal (DEV-ONLY mock signer)</h2>`)); }
   const el = $(`<div class="card"></div>`);
   el.innerHTML = `<div class="row"><h2 style="margin:0">${esc(s.suite_id)}</h2><span class="mut">n=${s.n} &middot; k=${s.k} &middot; root <code>${esc(s.root.slice(0, 16))}&hellip;</code> &middot; challenge drawn at block ${esc(s.draw_height)}</span></div>`;
   for (const r of s.runs) {

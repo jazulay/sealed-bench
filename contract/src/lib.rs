@@ -522,8 +522,8 @@ impl SealedBench {
         if !pinned.iter().any(|p| p.address == addr) {
             fail!("signature not from a pinned signer for {}", run.model);
         }
-        // 6. deterministic re-grade from raw response bytes
-        res.model_answer = extract_answer(&it.response);
+        // 6. deterministic re-grade: last ANSWER inside the raw `content` value (never reasoning_content)
+        res.model_answer = response_answer(&it.response);
         res.correct = res.model_answer == Some(it.answer);
         if (res.correct as u8) != it.grade {
             let got = res.model_answer.map_or("none".to_string(), |a| a.to_string());

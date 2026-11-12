@@ -32,8 +32,10 @@ export const MOCK_MODEL = "mock/DEV-ONLY-not-a-TEE";
 const MOCK_KEY = "0x" + createHash("sha256").update("sealed-bench DEV-ONLY mock signer -- NOT NEAR AI, NOT A TEE").digest("hex");
 export const MOCK_ADDRESS = L.addressOf(MOCK_KEY);
 
+// Public, committed with each suite. Thinking is switched off (Qwen3 honours enable_thinking=false; GLM still
+// returns a short reasoning_content, which the contract ignores: it grades only the `content` field).
 export const REQUEST_TEMPLATE =
-  '{"model":"{MODEL}","messages":[{"role":"system","content":"You are taking a math test. Think briefly, then end your reply with one final line of the form ANSWER: <integer>. Run nonce: {NONCE}"},{"role":"user","content":{QUESTION}}],"temperature":0,"max_tokens":1200,"stream":false}';
+  '{"model":"{MODEL}","messages":[{"role":"system","content":"You are taking a math test. Solve the problem concisely. Your reply must end with one final line of the form ANSWER: <integer> (digits only, no units). Run nonce: {NONCE}"},{"role":"user","content":{QUESTION}}],"temperature":0,"max_tokens":1024,"stream":false,"chat_template_kwargs":{"enable_thinking":false}}';
 
 function gen() {
   const suite = need("suite");
@@ -86,8 +88,10 @@ async function infer() {
   const { view } = await nearMod();
   const onchainReq = await view<string>("build_request_for", { suite_id: s.suite_id, model, question: s.items[0].question });
   if (onchainReq !== L.buildRequest(s.request_template, model, run.nonce, s.items[0].question)) throw new Error("request bytes differ from contract build_request_for; refusing to run");
-  for (const it of s.items.slice(0, limit)) {
-    if (entries[it.idx]?.signature) continue;
+  const todo = s.items.slice(0, limit).filter((it: any) => !entries[it.idx]?.signature);
+  const conc = Number(flags.concurrency ?? (flags.mock ? 1 : 6));
+  let failures = 0;
+  const one = async (it: any) => {
     const request = L.buildRequest(s.request_template, model, run.nonce, it.question);
     let e: any;
     if (flags.mock) {
@@ -96,16 +100,25 @@ async function infer() {
       const text = L.signedText(model, L.sha256hex(request), L.sha256hex(response));
       e = { request, response, chat_id, signature: L.signEip191(MOCK_KEY, text), signing_address: MOCK_ADDRESS, signature_kind: "DEV-ONLY-mock", text };
     } else {
-      e = await signedCompletion(model, request);
+      for (let attempt = 1; ; attempt++) {
+        try { e = await signedCompletion(model, request); break; }
+        catch (err) { if (attempt >= 3) { failures++; process.stderr.write(`#${it.idx} FAILED: ${(err as Error).message.slice(0, 200)}\n`); return; } await new Promise((r) => setTimeout(r, 3000 * attempt)); }
+      }
     }
-    const rawAns = L.extractAnswer(e.response);
-    entries[it.idx] = { idx: it.idx, ...e, req_hash: L.sha256hex(e.request), resp_hash: L.sha256hex(e.response), model_answer: rawAns, grade: rawAns === it.answer ? 1 : 0 };
+    const rawAns = L.responseAnswer(e.response);
+    let usage: any = null; let finish: any = null;
+    try { const j = JSON.parse(e.response); usage = j.usage ?? null; finish = j.choices?.[0]?.finish_reason ?? null; } catch {}
+    entries[it.idx] = { idx: it.idx, ...e, req_hash: L.sha256hex(e.request), resp_hash: L.sha256hex(e.response), model_answer: rawAns, grade: rawAns === it.answer ? 1 : 0, usage, finish_reason: finish };
     run.entries = entries;
     wr(runFile, run);
-    process.stderr.write(`#${it.idx} answer=${rawAns} key=${it.answer} grade=${entries[it.idx].grade}\n`);
-  }
+    process.stderr.write(`#${it.idx} answer=${rawAns} key=${it.answer} grade=${entries[it.idx].grade} finish=${finish} out=${usage?.completion_tokens}\n`);
+  };
+  const queue = [...todo];
+  await Promise.all(Array.from({ length: Math.max(1, conc) }, async () => { while (queue.length) await one(queue.shift()); }));
+  const tokens = entries.filter(Boolean).reduce((a: any, e: any) => ({ in: a.in + (e.usage?.prompt_tokens ?? 0), out: a.out + (e.usage?.completion_tokens ?? 0) }), { in: 0, out: 0 });
+  if (failures) process.stderr.write(`${failures} items failed; re-run infer to resume\n`);
   const done = entries.filter(Boolean).length;
-  out({ ok: true, model, mock: !!flags.mock, done, of: s.n, correct: entries.filter((e: any) => e?.grade === 1).length, run_file: runFile });
+  out({ ok: done === s.n, model, mock: !!flags.mock, done, of: s.n, tokens, correct: entries.filter((e: any) => e?.grade === 1).length, run_file: runFile });
 }
 
 function runTree(entries: any[]) {

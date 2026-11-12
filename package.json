@@ -14,7 +14,8 @@
     "verify": "node cli/src/cli.ts verify",
     "tamper": "node cli/src/cli.ts tamper",
     "test": "node --test cli/test/*.test.ts",
-    "web": "node cli/src/cli.ts export-web --dir fixtures/demo,fixtures/demo-fail",
+    "web": "node cli/src/cli.ts export-web --dir fixtures/real,fixtures/demo,fixtures/demo-fail",
+    "verify:demo": "node cli/src/cli.ts verify --dir fixtures/demo",
     "test:contract": "cd contract && cargo test",
     "build:contract": "cd contract && cargo near build non-reproducible-wasm"
   },

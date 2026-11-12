@@ -24,6 +24,15 @@ test("extractAnswer mirrors the contract", () => {
   assert.equal(L.extractAnswer("ANSWER: 1234567890123456789"), null);
 });
 
+test("responseAnswer reads only the content field", () => {
+  const raw = '{"message":{"role":"assistant","content":"17 \\u00d7 3 = 51\\n\\nANSWER: 51","reasoning_content":"They want ANSWER: <integer>. Maybe ANSWER: 50?"}}';
+  assert.equal(L.responseAnswer(raw), 51);
+  assert.equal(L.extractAnswer(raw), 50); // naive read hits reasoning
+  assert.equal(L.responseAnswer('{"message":{"content":"he said \\"ANSWER: 3\\" but ANSWER: 4","reasoning_content":"ANSWER: 9"}}'), 4);
+  assert.equal(L.responseAnswer('{"message":{"content":null,"reasoning_content":"ANSWER: 9"}}'), null);
+  assert.equal(L.responseAnswer("plain ANSWER: 5"), 5);
+});
+
 test("Merkle proofs round-trip for every index and odd sizes", () => {
   for (const n of [1, 2, 3, 5, 25, 100]) {
     const leaves = [...Array(n).keys()].map((i) => L.itemLeaf(i, "ab".repeat(32), i, `q${i}`));

@@ -156,6 +156,38 @@ pub fn signed_text(model: &str, req_hash_hex: &str, resp_hash_hex: &str) -> Stri
     format!("{model}:{req_hash_hex}:{resp_hash_hex}")
 }
 
+/// The bytes of the first `"content":"` JSON string value in a raw chat-completion body, up to its
+/// closing unescaped quote (still JSON-escaped). Reasoning models put `reasoning_content` AFTER
+/// `content`, and their reasoning often repeats "ANSWER: <integer>", so grading must only read the
+/// final answer text. The marker cannot occur inside a JSON string value: a quote inside a string
+/// is always escaped as \" so `"content":"` there would read `\"content\":\"`.
+pub fn answer_region(raw: &str) -> Option<&str> {
+    const MARK: &str = "\"content\":\"";
+    match raw.find(MARK) {
+        Some(p) => {
+            let start = p + MARK.len();
+            let b = raw.as_bytes();
+            let mut i = start;
+            while i < b.len() {
+                match b[i] {
+                    b'\\' => i += 2,
+                    b'"' => return Some(&raw[start..i]),
+                    _ => i += 1,
+                }
+            }
+            None
+        }
+        // Not a chat-completion body (unit-test strings): use it whole, unless it carries reasoning.
+        None if raw.contains("reasoning_content") => None,
+        None => Some(raw),
+    }
+}
+
+/// Grade input: the final ANSWER inside the response's `content` field only.
+pub fn response_answer(raw: &str) -> Option<i64> {
+    answer_region(raw).and_then(extract_answer)
+}
+
 /// Take the LAST "ANSWER:" marker in the raw response bytes and parse the integer after it.
 /// Skips spaces, '*', '$' and backslash-escapes; drops thousands separators.
 pub fn extract_answer(response: &str) -> Option<i64> {

@@ -50,6 +50,48 @@ fn extract_answer_cases() {
 }
 
 #[test]
+fn response_answer_ignores_reasoning_content() {
+    // Shape of real NEAR AI Cloud GLM/Qwen bodies: reasoning_content comes after content.
+    let raw = r#"{"id":"x","choices":[{"index":0,"message":{"role":"assistant","content":"17 \u00d7 3 = 51\n\nANSWER: 51","reasoning_content":"They want ANSWER: <integer>. Maybe ANSWER: 50?"},"finish_reason":"stop"}]}"#;
+    assert_eq!(response_answer(raw), Some(51));
+    assert_eq!(extract_answer(raw), Some(50)); // naive last-marker read hits the reasoning text
+    // escaped quotes inside content do not end the region
+    let raw2 = r#"{"message":{"content":"he said \"ANSWER: 3\" but ANSWER: 4","reasoning_content":"ANSWER: 9"}}"#;
+    assert_eq!(response_answer(raw2), Some(4));
+    assert_eq!(response_answer(r#"{"message":{"content":null,"reasoning_content":"ANSWER: 9"}}"#), None);
+    assert_eq!(response_answer("plain ANSWER: 5"), Some(5));
+}
+
+#[test]
+fn real_near_ai_glm_signature_vector() {
+    // Recorded from NEAR AI Cloud on Thu Nov 12, 2026 (GET /v1/signature/<chat_id>?signing_algo=ecdsa).
+    let v: serde_json_lite::V = serde_json_lite::load(include_str!("../../fixtures/spike/glm-5.3-flash.json"));
+    let req_hash = to_hex(&sha256(v.request.as_bytes()));
+    let resp_hash = to_hex(&sha256(v.response.as_bytes()));
+    let text = signed_text("z-ai/glm-5.3-flash", &req_hash, &resp_hash);
+    assert_eq!(text, v.text, "our sha256(request)/sha256(response) must equal what NEAR AI signed");
+    let addr = recover_eth_address(&text, &v.signature).unwrap();
+    assert_eq!(format!("0x{}", to_hex(&addr)), v.signing_address);
+    assert_eq!(v.signing_address, "0x3b753b4406613c5e70ae640508632b600424fa0c");
+}
+
+#[test]
+fn real_near_ai_qwen_signature_vector() {
+    let v: serde_json_lite::V = serde_json_lite::load(include_str!("../../fixtures/spike/Qwen3.8-27B.json"));
+    let text = signed_text("Qwen/Qwen3.8-27B", &to_hex(&sha256(v.request.as_bytes())), &to_hex(&sha256(v.response.as_bytes())));
+    assert_eq!(text, v.text);
+    assert_eq!(format!("0x{}", to_hex(&recover_eth_address(&text, &v.signature).unwrap())), "0x835ab53d20294ef795906dff21ae4c045336aa26");
+}
+
+/// Tiny fixture loader using near-sdk's serde_json (already a dependency).
+mod serde_json_lite {
+    #[derive(near_sdk::serde::Deserialize)]
+    #[serde(crate = "near_sdk::serde")]
+    pub struct V { pub request: String, pub response: String, pub text: String, pub signature: String, pub signing_address: String }
+    pub fn load(s: &str) -> V { near_sdk::serde_json::from_str(s).unwrap() }
+}
+
+#[test]
 fn json_string_matches_js() {
     assert_eq!(json_string("a\"b\\c\nd\u{1}é"), "\"a\\\"b\\\\c\\nd\\u0001é\"");
 }
@@ -174,7 +216,7 @@ fn do_run(fx: &mut Fx, model: &str, key: &SigningKey) -> RunArt {
         let rh = to_hex(&sha256(req.as_bytes()));
         let sh = to_hex(&sha256(resp.as_bytes()));
         let sig = sign_eip191(key, &signed_text(model, &rh, &sh));
-        let g = if extract_answer(&resp) == Some(it.answer) { 1 } else { 0 };
+        let g = if response_answer(&resp) == Some(it.answer) { 1 } else { 0 };
         leaves.push(run_leaf(i as u32, &rh, &sh, &sig, g));
         responses.push(resp);
         sigs.push(sig);

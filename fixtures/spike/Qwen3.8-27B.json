@@ -1,0 +1,12 @@
+{
+ "model": "Qwen/Qwen3.8-27B",
+ "recorded": "2026-11-12 (CT)",
+ "note": "Byte-exact spike: exact request bytes, exact response bytes, and the NEAR AI Cloud /v1/signature result (signature_kind provider_tee, ecdsa).",
+ "request": "{\"model\":\"Qwen/Qwen3.8-27B\",\"messages\":[{\"role\":\"system\",\"content\":\"You are taking a math test. Think briefly, then end your reply with one final line of the form ANSWER: <integer>. Run nonce: abc123\"},{\"role\":\"user\",\"content\":\"Toula bought 3 dozen donuts at $68 per dozen and 2 dozen cupcakes at $80 per dozen. Total cost?\"}],\"temperature\":0,\"max_tokens\":800,\"stream\":false,\"reasoning_effort\":\"none\"}",
+ "response": "{\"id\":\"8d15f549d74245459a9557bc162a2808\",\"object\":\"chat.completion\",\"choices\":[{\"index\":0,\"message\":{\"role\":\"assistant\",\"content\":\"To find the total cost, we need to calculate the cost of the donuts and the cupcakes separately and then add them together.\\n\\n**Step 1: Calculate the cost of the donuts.**\\nToula bought 3 dozen donuts at a price of $68 per dozen.\\n$$ \\\\text{Cost of donuts} = 3 \\\\times 68 $$\\n$$ 3 \\\\times 60 = 180 $$\\n$$ 3 \\\\times 8 = 24 $$\\n$$ 180 + 24 = 204 $$\\nSo, the donuts cost $204.\\n\\n**Step 2: Calculate the cost of the cupcakes.**\\nToula bought 2 dozen cupcakes at a price of $80 per dozen.\\n$$ \\\\text{Cost of cupcakes} = 2 \\\\times 80 $$\\n$$ 2 \\\\times 80 = 160 $$\\nSo, the cupcakes cost $160.\\n\\n**Step 3: Calculate the total cost.**\\n$$ \\\\text{Total Cost} = \\\\text{Cost of donuts} + \\\\text{Cost of cupcakes} $$\\n$$ \\\\text{Total Cost} = 204 + 160 $$\\n$$ 204 + 160 = 364 $$\\n\\nThe total cost is $364.\\n\\nANSWER: 364\"},\"finish_reason\":\"stop\",\"logprobs\":null,\"matched_stop\":248046}],\"model\":\"Qwen/Qwen3.8-27B\",\"created\":1794521246,\"usage\":{\"prompt_tokens\":81,\"total_tokens\":384,\"completion_tokens\":303,\"prompt_tokens_details\":{\"cached_tokens\":0},\"reasoning_tokens\":0,\"completion_tokens_details\":null}}",
+ "text": "Qwen/Qwen3.8-27B:ea76e923db71a491560a8613c42276779480aaae59f243aca03f0079d0c37c30:2b42f04088c320cd135734072a6497b31e4245d1ea0700b6cd6782a2a25e243e",
+ "signature": "0x54219aa4c26766de1bafeaaa7062cbf0278d417b89eae63b6fadb54e354e00de3df339f01bc2802cd23da63f75223aaec74ca53e7395c4a582ef4482f22c03231c",
+ "signing_address": "0x835ab53d20294ef795906dff21ae4c045336aa26",
+ "signing_algo": "ecdsa",
+ "signature_kind": "provider_tee"
+}

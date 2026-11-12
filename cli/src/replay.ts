@@ -11,7 +11,7 @@ const rd = (p: string) => JSON.parse(readFileSync(p, "utf8"));
 
 function fixtureFiles(flags: Record<string, string>): string[] {
   if (flags.fixture) return [flags.fixture];
-  return (flags.dir ?? "fixtures/demo").split(",").flatMap((dd) => {
+  return (flags.dir ?? "fixtures/real").split(",").flatMap((dd) => {
     const d = join(ROOT, dd);
     return readdirSync(d).filter((f) => f.startsWith("reveal.") && f.endsWith(".json")).sort().map((f) => join(d, f));
   });
@@ -67,7 +67,7 @@ const ROGUE = "0x" + "07".repeat(32);
 
 export async function tamper(flags: Record<string, string>) {
   const near = flags.offline ? null : await onchain();
-  const ff = fixtureFiles(flags); const f = ff.find((x) => x.includes("sealed")) ?? ff[0]; const fx = rd(f); const c = ctxOf(fx);
+  const ff = fixtureFiles(flags); const f = ff.find((x) => /reveal\.[^/]*sealed[^/]*$/.test(x)) ?? ff[0]; const fx = rd(f); const c = ctxOf(fx);
   const base: L.RevealItem = fx.revealed.find((i: any) => i.grade === 1) ?? fx.revealed[0];
   const other: L.RevealItem = fx.revealed.find((i: any) => i.idx !== base.idx);
   const nonChallenged = [...Array(fx.suite.n).keys()].find((i) => !fx.suite.challenge.includes(i))!;
@@ -119,7 +119,7 @@ export async function exportWeb(flags: Record<string, string>) {
     if (!suites[id]) suites[id] = { ...fx.suite, runs: [] };
     let audit: any = null;
     if (near) try { audit = await near.view("get_audit", { suite_id: id, model: fx.run.model }); } catch {}
-    suites[id].runs.push({ model: fx.run.model, score: [...fx.run.grades].filter((g: string) => g === "1").length, n: fx.suite.n, run_root: fx.run.run_root, nonce: fx.run.nonce, txs: fx.txs, audit, revealed: fx.revealed.map((r: any) => ({ idx: r.idx, question: r.question, answer: r.answer, model_answer: L.extractAnswer(r.response), grade: r.grade, signer: L.recoverSigner(L.signedText(fx.run.model, L.sha256hex(L.buildRequest(fx.suite.request_template, fx.run.model, fx.run.nonce, r.question)), L.sha256hex(r.response)), r.signature) })) });
+    suites[id].runs.push({ model: fx.run.model, score: [...fx.run.grades].filter((g: string) => g === "1").length, n: fx.suite.n, run_root: fx.run.run_root, nonce: fx.run.nonce, txs: fx.txs, audit, revealed: fx.revealed.map((r: any) => ({ idx: r.idx, question: r.question, answer: r.answer, model_answer: L.responseAnswer(r.response), grade: r.grade, signer: L.recoverSigner(L.signedText(fx.run.model, L.sha256hex(L.buildRequest(fx.suite.request_template, fx.run.model, fx.run.nonce, r.question)), L.sha256hex(r.response)), r.signature) })) });
   }
   const cfg = rd(join(ROOT, "config", "testnet.json"));
   const data = { generated_at: new Date().toISOString(), contract: cfg.contractId, explorer: cfg.explorer, suites: Object.values(suites) };

@@ -17,12 +17,25 @@ Times in America/Chicago (CT).
 - GitHub: the box gh is not logged in, so the Mac mini relays pushes (scripts/push-via-mac.md).
 - 2:50 PM CT: Published https://github.com/jazulay/sealed-bench (public, MIT detected, topics near/nearhackathon/tee/ai-benchmark). Author: Joseph Azulay <35465299+jazulay@users.noreply.github.com>. gitleaks: no leaks (public attestation reports allowlisted).
 
-## Blocked on the NEAR AI key (NEARAI_API_KEY via secret card)
-1. Byte-exact spike: one real completion, then signature, then on-chain `check_reveal` passes. Confirm the Builders key supports /v1/signature with provider_tee.
-2. Tune the request template: thinking off (Qwen3/GLM param), max_tokens, and make sure the last "ANSWER:" in the raw bytes is the content's answer, not reasoning text.
-3. Real suites: gsm-sealed-v1 (100, random secret seed) and gsm-public-v1 (25). Run Qwen3.8-27B and GLM-5.3-flash, about 250 calls. Then commit, draw, reveal, and write fixtures/real/ plus the gap table.
+- 2026-11-12, about 4:00 PM CT: Received the NEAR AI Cloud key ($10 NEAR Builders credits, claimed on yossiazulay.near). It is loaded from a mode-600 file on the box into env only, and is never committed or logged.
+- 4:08 PM CT: Byte-exact spike passed for both models.
+  - What matched: our `MODEL:sha256(req):sha256(resp)` equals NEAR AI's signed text exactly, and `signature_kind` is provider_tee.
+  - Recovered signers: ecrecover gives exactly the pinned signers, Qwen 0x835ab53d…aa26 and GLM 0x3b753b44…fa0c, so no re-pin was needed.
+  - Vectors are saved in fixtures/spike/ and replayed by 2 new contract tests.
+- Finding: the responses carry `reasoning_content` after `content`, and that reasoning text repeats "ANSWER: <integer>".
+  - GLM-5.3-flash cannot turn reasoning off.
+  - Fix: the contract and CLI now grade only the raw `"content":"…"` JSON string value. If there is no content field and a reasoning field is present, the response fails closed.
+  - The contract was redeployed with state preserved (tx FdqHexir9UEPwFpsuXQE2bryfJAWmzYDwnAHUBbVdsZo). Contract tests: 30/30; CLI tests: 7/7.
+- Template tuned: `enable_thinking: false`, `max_tokens: 1024`, temperature 0, and an "end with ANSWER: <integer>" system prompt. All 250 responses finished with `stop` and had an ANSWER line in content.
+- 4:12 to 4:21 PM CT: Real runs on testnet:
+  - gsm-sealed-v1 (100 variants, secret seed): Qwen3.8-27B 100/100 AUDITED; GLM-5.3-flash 98/100 AUDITED.
+  - gsm-public-v1 (25 originals): Qwen 25/25 AUDITED; GLM 25/25 AUDITED.
+  - In both suites, 20/20 sampled entries were verified on-chain, and the draw was called by a non-owner.
+  - Gap: Qwen 0.0 pts, GLM 2.0 pts. That is a ceiling result. GLM's 2 misses are lego-template literal readings, and neither was in the sample.
+  - Credits used: about $0.06 of $10, estimated from usage tokens.
+- 4:24 PM CT: `npm run verify` now defaults to fixtures/real (the mock rehearsal moved to `npm run verify:demo`). Tamper runs on the real sealed Qwen fixture and rejects 9/9 lies. README and page now show the real numbers.
+- Payout / nearAddress for the submission: **yossiazulay.near** (mainnet).
 
 ## Next (to Fri Nov 13 noon CT)
-- Thu AM: spike, then real runs once the key arrives. Point `npm run verify` default at fixtures/real/ and keep demo/ as the rehearsal.
-- Thu PM: README numbers from the real runs, page refresh, demo video script, and an X post draft (Yossi posts).
-- Thu night/Fri AM: final review, then Yossi submits.
+- Demo video script and an X post draft (Yossi posts).
+- Final critique pass (Claude/Codex review only), then Yossi submits with nearAddress yossiazulay.near.
