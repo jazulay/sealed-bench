@@ -6,7 +6,7 @@ Sealed Bench runs **sampled, on-chain spot checks** of private AI evaluations on
 
 **Live site and audit explorer: https://sealed-bench.up.railway.app**. It reads the testnet contract in your browser over public RPC, with no keys and no backend.
 
-**Problem.** Public benchmarks leak into training data, so a high score can mean the model memorized the test. A private test set avoids the leak, but then nobody can check the score. Sealed Bench lets an owner keep the test set private and still have the score spot-checked in public:
+**Problem.** Published benchmarks can end up in training data, so a high score may come from memorization. A private test set avoids that, and outsiders then have only the owner's number. Sealed Bench keeps the set private and spot-checks the score on-chain:
 
 1. The owner commits a Merkle root of the sealed test set on NEAR.
 2. The owner runs models through NEAR AI Cloud. The sealed questions are sent there: the models run in TEEs, and every response is signed by the model's TEE key.
@@ -21,7 +21,7 @@ Sealed Bench runs **sampled, on-chain spot checks** of private AI evaluations on
 
 AUDITED means 20 random entries matched TEE-signed responses and re-graded correctly. It is a spot check, not a proof that all 100 entries are honest.
 
-This idea comes from Illia's NEAR HACKATHON list: *"AI benchmarking with private test sets… certified for given model and given hash of test set."*
+The idea is from Illia's NEAR HACKATHON list: *"AI benchmarking with private test sets… certified for given model and given hash of test set."*
 
 Tracks: `privacy` (primary) and `open`.
 
@@ -384,7 +384,7 @@ After the v1 runs, two external reviewers (Claude Code and Codex, as read-only c
   - near-api-js 7.5;
   - FastNEAR RPC;
   - NearBlocks.
-- **Not used:** NEAR Intents, Chain Signatures and Shade Agents. They don't fit this design.
+- **Not used:** NEAR Intents, Chain Signatures and Shade Agents. The design does not need them.
 
 ## Libraries
 
@@ -413,7 +413,7 @@ docs/debate/     design decision and critique transcripts
 
 ## How this was built
 
-Grok Bot wrote all the code. Claude Code and Codex acted only as read-only critics, in the design debate and in the v1 review: they wrote no code, edited no files and touched no chain. The transcripts are in [`docs/debate/`](docs/debate/).
+Grok Bot wrote all the code. Claude Code and Codex were read-only critics in the design debate, the v1 review and the site copy review. They wrote no code, edited no files and sent no transactions. The transcripts are in [`docs/debate/`](docs/debate/).
 
 ## License
 

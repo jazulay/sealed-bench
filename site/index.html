@@ -55,7 +55,7 @@
 <section class="hero" id="top">
   <div class="hero-bg" aria-hidden="true"><div class="hero-grid"></div><div class="hero-glow"></div></div>
   <div class="wrap hero-in">
-    <a class="eyebrow" href="#explorer"><span class="tag">Testnet</span> 4 NEAR AI TEE runs, all AUDITED <span aria-hidden="true">→</span></a>
+    <a class="eyebrow" href="#explorer"><span class="tag">Testnet</span> 8 NEAR AI TEE runs on contract v2, all AUDITED <span aria-hidden="true">→</span></a>
     <h1 class="display display-hero">Audit a private benchmark score by opening 20 of 100 entries.</h1>
     <p class="lede">The owner commits a Merkle root of a private test set, then each graded run, to a NEAR contract. Any account can then call the draw, and <code>random_seed</code> picks 20 of 100 entries. Each one must match its commitment, carry a pinned NEAR AI TEE signature and re-grade the same, or the run fails.</p>
     <div class="cta">
@@ -147,9 +147,9 @@
 <section class="sec" id="gap">
   <div class="wrap">
     <p class="kicker">Result</p>
-    <h2 class="h2">GSM8K: public problems vs. private variants</h2>
-    <p class="lede-sm">25 public GSM8K problems and 100 unpublished numeric variants, 4 per problem. NEAR AI's TEE saw the variants; the 20 drawn are now public. Temperature 0. Both models score near 100% on both sets, so this result says nothing about contamination. One public problem is 4 points, so a 2-point gap is below resolution.</p>
-    <div class="gap" id="gap-table"></div>
+    <h2 class="h2">Public problems vs. sealed variants</h2>
+    <p class="lede-sm">Each sealed suite holds 100 numeric variants of 25 public problems, 4 per problem, with answers computed in code. Temperature 0. The hypothesis and analysis were pre-registered before inference. On the AIME-style set no gap is detected for either model: Qwen scored higher on the sealed variants, and GLM's +11 points has a 95% interval that includes 0. Most sealed misses are answers cut off at the 4,096-token limit, which grade as wrong (operator's count; only drawn responses are public). The GSM8K control sits at the ceiling.</p>
+    <div class="gap-wrap" id="gap-table"></div>
   </div>
 </section>
 
@@ -171,7 +171,7 @@
     <div>
       <p class="kicker">Detection odds</p>
       <h2 class="h2">How often a misreport is caught</h2>
-      <p class="lede-sm">With 10 bad entries out of 100, the draw catches the run 90.5% of the time. With 2, 36%. Across 10 suites at 10% misreporting, at least one gets through 63% of the time. These figures assume an unbiased draw and no retries.</p>
+      <p class="lede-sm">With 10 bad entries out of 100, the draw catches the run 90.5% of the time. With 2, 36%. Across 10 suites at 10% misreporting, at least one gets through 63% of the time. These figures assume an unbiased draw and one suite per test set.</p>
       <label class="slider"><span>Misreported entries: <b class="mono" id="odds-m">10</b> of 100</span>
         <input type="range" min="1" max="30" value="10" id="odds-in" aria-describedby="odds-out"></label>
       <p class="fine">Hypergeometric, per run, 20 distinct entries of 100. This is not the probability that the score is correct.</p>
@@ -203,18 +203,17 @@ let pk = env::ecrecover(&amp;hash, &amp;sig[..64], v, false).ok_or("ecrecover fa
 let h = env::keccak256_array(&amp;pk);
 addr.copy_from_slice(&amp;h[12..]);
 <span class="c">// contract/src/lib.rs</span>
-let pinned = self.signers.get(&amp;run.model).cloned().unwrap_or_default();
-if !pinned.iter().any(|p| p.address == addr) {
-    fail!("signature not from a pinned signer for {}", run.model);
+if !run.signers.iter().any(|p| *p == addr) {
+    fail!("signature not from a signer pinned for {} when this run started", run.model);
 }</code></pre>
       </article>
       <article class="bento-c card">
         <h3><code>random_seed</code></h3>
-        <p>Sets each run's nonce at <code>start_run</code> and picks the sample at the draw.</p>
+        <p>Sets each run's nonce at <code>start_run</code> and picks the sample at the draw. Reveals must land in a later block than the draw.</p>
       </article>
       <article class="bento-d card">
         <h3>Pinned signers</h3>
-        <p>The admin pins a key after checking its TDX quote off-chain with <code>dcap-qvl</code>. The report hash is stored with it. The contract does not verify the quote.</p>
+        <p>The admin pins a key after checking its TDX quote off-chain with <code>dcap-qvl</code>. The contract does not verify the quote. Each run copies the pins at <code>start_run</code>, so a key pinned later does not count for it.</p>
         <div class="pins" id="pins"></div>
       </article>
       <article class="bento-e card">
@@ -234,17 +233,17 @@ if !pinned.iter().any(|p| p.address == addr) {
         <h3><span class="ico ico-warn" aria-hidden="true"></span>You trust</h3>
         <ul>
           <li>NEAR AI Cloud to keep each signing key inside its enclave. The provider sees every sealed entry inside the TEE.</li>
-          <li>The operator. Owner and admin are the same operator here. The admin pins keys after an off-chain check of the DCAP quote, report data, MRCONFIGID and RTMR3. In v1 a key pinned after a run still counts, and pins cannot be revoked.</li>
+          <li>The operator. Owner, admin and drawer are separate accounts run by one operator. The admin pins keys after an off-chain check of the DCAP quote, report data, MRCONFIGID and RTMR3.</li>
           <li>The gateway's model id. The signature does not identify the weights.</li>
           <li>Shared keys. All instances of a model use one signer, so a match does not identify the serving instance.</li>
-          <li>The upgrade key. The operator holds a full-access key to the contract account and has redeployed with state kept. Until that key is removed, it can deploy code that changes stored results.</li>
+          <li>The upgrade key. The contract account still has a full-access key. <code>npm run verify</code> compares the deployed code hash with the published wasm. Until the key is deleted, the operator can deploy code that changes stored results.</li>
         </ul>
       </article>
       <article class="card">
         <h3><span class="ico ico-ok" aria-hidden="true"></span>A passing audit shows</h3>
         <ul>
           <li>The revealed questions and answer keys were committed before the run.</li>
-          <li>Each revealed response used this run's nonce and was signed by a key pinned for that model.</li>
+          <li>Each revealed response used this run's nonce and was signed by a key in the signer set fixed at <code>start_run</code>.</li>
           <li>For each revealed entry, the committed grade matches a deterministic re-grade of the raw response.</li>
           <li>The score equals the sum of the committed grade vector.</li>
         </ul>
@@ -255,13 +254,13 @@ if !pinned.iter().any(|p| p.address == addr) {
           <li><b>Unsampled entries.</b> They stay unchecked. The odds above are the only coverage.</li>
           <li><b>Re-rolls.</b> The nonce binds signed responses to the run. Best-of-N within the run is still possible.</li>
           <li><b>Small misreports.</b> 2 bad entries are caught 36% of the time.</li>
-          <li><b>Abandoned runs and suite shopping.</b> In v1 an owner can leave a bad run uncommitted, which blocks the draw, or commit one set to several suites and keep the one that passes.</li>
+          <li><b>Suite shopping.</b> v2 rejects duplicate roots and lists every run, including FAILED and Abandoned ones, in <code>owner_record</code>. An owner can still re-salt a set under a new root and try again.</li>
           <li><b>Secrecy from the owner.</b> The owner sees and grades the set.</li>
-          <li><b>An unbiased draw.</b> Block producers can bias <code>random_seed</code>. Here the operator's admin account called the draw, and v1 lets the caller batch it with reveals and retry. The fix is in v2, not yet deployed.</li>
+          <li><b>An independent draw.</b> Block producers can bias <code>random_seed</code> slightly. Every draw here was called by <code>sealedbench-drawer-hk26.testnet</code>, which is not the owner but is run by the same operator.</li>
         </ul>
       </article>
     </div>
-    <p class="fine trust-fine">Revealed entries are public and must be retired from the private set. The 0.1 NEAR bond is locked on failure, not slashed. The mock signer's key is public; mock runs are labeled <code>mock/DEV-ONLY-not-a-TEE</code> and no claim cites them.</p>
+    <p class="fine trust-fine">Revealed entries are public and must be retired from the private set. The 0.1 NEAR bond returns to the owner only if every run is AUDITED. Otherwise it goes to the account that drew or expired the suite. The mock signer's key is public; mock runs are labeled <code>mock/DEV-ONLY-not-a-TEE</code> and no claim cites them.</p>
   </div>
 </section>
 
@@ -272,8 +271,8 @@ if !pinned.iter().any(|p| p.address == addr) {
       <h2 class="h2">Check it from a clean clone</h2>
       <p class="lede-sm">Needs Node 22.18+ and testnet RPC. No account or key. About two minutes.</p>
       <ol class="vlist">
-        <li><b><code>npm run verify</code></b> Replays each reveal offline and compares roots, the draw, grades and signers with contract views.</li>
-        <li><b><code>npm run tamper</code></b> Applies nine edits to a signed entry and prints why each is rejected. Some are checked by the contract view, some offline.</li>
+        <li><b><code>npm run verify</code></b> Reads roots, grades, nonces and signers from the chain at one block, runs <code>check_reveal</code> on all 20 drawn entries per run, replays them offline and checks the deployed code hash.</li>
+        <li><b><code>npm run tamper</code></b> Applies 13 edits to a signed entry and labels each result as live contract view, offline what-if or unit-tested rule. It also lists 3 attacks that still succeed.</li>
       </ol>
     </div>
     <div class="term" id="term">
@@ -286,10 +285,10 @@ npm run tamper">Copy</button></div>
 <span class="p">$</span> cd sealed-bench &amp;&amp; npm ci
 
 <span class="p">$</span> npm run verify
-<span class="o"># expect "ok": true and every check true</span>
+<span class="o"># expect "ok": true, 8 results, every check true</span>
 
 <span class="p">$</span> npm run tamper
-<span class="o"># expect "9/9 lies rejected; honest reveal accepted=true"</span></code></pre>
+<span class="o"># expect "13/13 lies rejected (...); honest reveal accepted; 3 known limits"</span></code></pre>
 <p class="term-note">The README covers the attestation check.</p>
     </div>
   </div>

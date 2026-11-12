@@ -5,10 +5,12 @@ import { view, tx, acct, CONTRACT, ContractError } from "./near";
 
 /* ---------- types ---------- */
 type Entry = { idx: number; question: string; answer: number; grade: number; content: string; model_answer: number | string | null; signature: string };
-type Run = { model: string; status: string; score: number | null; grades: string | null; nonce: string; run_root: string | null; revealed: number[]; sample_correct: number; fail_reason: string | null; claim: string; reveal_file?: string; reveal_txs?: { tx: string; status: string }[]; entries?: Entry[] };
-type Suite = { suite_id: string; kind: "real" | "rehearsal"; owner: string; note: string; root: string; n: number; k: number; challenge: number[] | null; draw_height: number | null; draw_seed: string | null; drawn_by: string | null; reveal_deadline: number | null; lifecycle?: { commit_suite?: string; draw?: string; runs?: Record<string, { start: string; commit: string }> }; runs: Run[] };
+type Run = { model: string; status: string; score: number | null; grades: string | null; nonce: string; run_root: string | null; revealed: number[]; sample_correct: number; fail_reason: string | null; claim: string; signers?: string[]; commit_deadline?: number | null; reveal_file?: string; reveal_txs?: { tx: string; status: string }[]; entries?: Entry[] };
+type Suite = { suite_id: string; kind: "real" | "rehearsal"; owner: string; note: string; root: string; n: number; k: number; challenge: number[] | null; draw_height: number | null; draw_seed: string | null; drawn_by: string | null; reveal_deadline: number | null; bond_payee?: string | null; bond_paid?: boolean; lifecycle?: { commit_suite?: string; draw?: string; runs?: Record<string, { start: string; commit: string }> }; runs: Run[] };
 type Pin = { address: string; attestation_sha256: string; pinned_height: number; note: string };
-type Data = { generated_at: string; block_height: number; contract: string; signers: Record<string, Pin[]>; suites: Suite[]; source: "live" | "snapshot"; rpc?: string };
+type GapRow = { model: string; public: string; sealed: string; public_pct: number; sealed_pct: number; raw_gap_pts: number; status: { public: string; sealed: string }; paired: { gap_pts: number; ci95_pts: [number, number]; detected: boolean } };
+type Gap = { label: string; public: string; sealed: string; block: number; method: string; rows: GapRow[] };
+type Data = { generated_at: string; block_height: number; contract: string; signers: Record<string, Pin[]>; suites: Suite[]; source: "live" | "snapshot"; rpc?: string; gaps?: Gap[] };
 type RawItem = { idx: number; salt: string; answer: number; question: string; response: string; signature: string; grade: number; suite_proof: string[]; run_proof: string[] };
 type Check = { ok: boolean; reason: string; request_sha256: string; response_sha256: string; signed_text: string; recovered_signer: string | null; model_answer: number | null; correct: boolean };
 
@@ -24,11 +26,19 @@ const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const CHEV = `<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5L10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 // Pin transactions on the v1 testnet contract; other contracts fall back to the contract page.
-const PIN_TX: Record<string, string> = CONTRACT !== "sealedbench-hk26.testnet" ? {} : {
-  "0x835ab53d20294ef795906dff21ae4c045336aa26": "ArAfm58NWkrdjWPXvfBJ2PqWKGnucpsVcGKVPoaavN72",
-  "0x3b753b4406613c5e70ae640508632b600424fa0c": "BGQ1Yy99GdxQbN3A5cbVirmoHKUoYCL685hb4ikk473S",
-  "0xa6c3a19d7bdf8743396362411554a92f74fe9fa3": "F1AidK6P6qZaCsfK1AYtxbKgpj1fzJLXn51nVB8XX7go",
-};
+// Pin transactions per contract (from README "Deployed"). Unknown contract: link the account instead.
+const PIN_TX: Record<string, string> = ({
+  "sealedbench-v2-hk26.testnet": {
+    "0x835ab53d20294ef795906dff21ae4c045336aa26": "2WKhYheZDzvrot5ChP1hBJ9EABPPCgYTjCeVfUuHj4RA",
+    "0x3b753b4406613c5e70ae640508632b600424fa0c": "HYbP8AeiW91b3mHSdXdw4cmxsuMdAH7a4YLBF9eYJoQY",
+    "0xa6c3a19d7bdf8743396362411554a92f74fe9fa3": "AvbyiCSyPCD3rpPEg5Eq2ggwLgBf1gbZpfcQFD8PYh6m",
+  },
+  "sealedbench-hk26.testnet": {
+    "0x835ab53d20294ef795906dff21ae4c045336aa26": "ArAfm58NWkrdjWPXvfBJ2PqWKGnucpsVcGKVPoaavN72",
+    "0x3b753b4406613c5e70ae640508632b600424fa0c": "BGQ1Yy99GdxQbN3A5cbVirmoHKUoYCL685hb4ikk473S",
+    "0xa6c3a19d7bdf8743396362411554a92f74fe9fa3": "F1AidK6P6qZaCsfK1AYtxbKgpj1fzJLXn51nVB8XX7go",
+  },
+} as Record<string, Record<string, string>>)[CONTRACT] ?? {};
 
 /* ---------- data ---------- */
 async function loadSnapshot(): Promise<Data> {
@@ -37,7 +47,7 @@ async function loadSnapshot(): Promise<Data> {
 }
 
 async function loadLive(snap: Data): Promise<Data> {
-  const { value: ids, block, rpc } = await view<string[]>("list_suites");
+  const { value: ids, block, rpc } = await view<string[]>("list_suites", { from_index: 0, limit: 100 });
   const bySnap = new Map(snap.suites.map((s) => [s.suite_id, s]));
   const suites = await Promise.all(ids.map(async (id) => {
     const { value: s } = await view<any>("get_suite", { suite_id: id });
@@ -45,17 +55,17 @@ async function loadLive(snap: Data): Promise<Data> {
     const runs = await Promise.all((s.models as string[]).map(async (m) => {
       const [{ value: run }, { value: audit }] = await Promise.all([view<any>("get_run", { suite_id: id, model: m }), view<any>("get_audit", { suite_id: id, model: m })]);
       const sr = base?.runs.find((r) => r.model === m);
-      return { ...sr, model: m, status: run.status, score: run.score, grades: run.grades, nonce: run.nonce, run_root: run.run_root, revealed: run.revealed, sample_correct: run.sample_correct, fail_reason: run.fail_reason, claim: audit.claim } as Run;
+      return { ...sr, model: m, status: run.status, score: run.score, grades: run.grades, nonce: run.nonce, run_root: run.run_root, revealed: run.revealed, sample_correct: run.sample_correct, fail_reason: run.fail_reason, claim: audit.claim, signers: run.signers, commit_deadline: run.commit_deadline } as Run;
     }));
     const kind: Suite["kind"] = runs.length && runs.every((r) => isMock(r.model)) ? "rehearsal" : "real";
-    return { ...base, suite_id: id, kind, owner: s.owner, note: s.note, root: s.root, n: s.n, k: s.k, challenge: s.challenge, draw_height: s.draw_height, draw_seed: s.draw_seed, drawn_by: s.drawn_by, reveal_deadline: s.reveal_deadline, lifecycle: base?.lifecycle, runs } as Suite;
+    return { ...base, suite_id: id, kind, owner: s.owner, note: s.note, root: s.root, n: s.n, k: s.k, challenge: s.challenge, draw_height: s.draw_height, draw_seed: s.draw_seed, drawn_by: s.drawn_by, reveal_deadline: s.reveal_deadline, bond_payee: s.bond_payee, bond_paid: s.bond_paid, lifecycle: base?.lifecycle, runs } as Suite;
   }));
   const models = [...new Set(suites.flatMap((s) => s.runs.map((r) => r.model)))];
   const signers: Record<string, Pin[]> = {};
   await Promise.all(models.map(async (m) => { signers[m] = (await view<Pin[]>("get_signers", { model: m })).value; }));
-  const rank = (s: Suite) => (s.kind === "real" ? 0 : 10) + (/sealed/.test(s.suite_id) ? 0 : 1) + (/cheat-v1/.test(s.suite_id) ? 5 : 0) + (/cheat-v2/.test(s.suite_id) ? 3 : 0);
+  const rank = (s: Suite) => (s.kind === "real" ? 0 : 10) + (/^gsm/.test(s.suite_id) ? 2 : 0) + (/sealed/.test(s.suite_id) ? 0 : 1) + (/cheat/.test(s.suite_id) ? 1 : 0);
   suites.sort((a, b) => rank(a) - rank(b));
-  return { generated_at: new Date().toISOString(), block_height: block, contract: CONTRACT, signers, suites, source: "live", rpc };
+  return { generated_at: new Date().toISOString(), block_height: block, contract: CONTRACT, signers, suites, source: "live", rpc, gaps: snap.gaps };
 }
 
 /* ---------- source indicators ---------- */
@@ -93,7 +103,7 @@ function renderStats(d: Data) {
 
 /* ---------- hero stage ---------- */
 function pickHero(d: Data) {
-  const s = d.suites.find((x) => x.suite_id === "gsm-sealed-v1" && x.challenge) ?? d.suites.find((x) => x.kind === "real" && x.challenge && x.n === 100) ?? d.suites.find((x) => x.challenge)!;
+  const s = d.suites.find((x) => x.suite_id === "aime-sealed-v1" && x.challenge) ?? d.suites.find((x) => x.kind === "real" && x.challenge && x.n === 100) ?? d.suites.find((x) => x.challenge)!;
   const r = s.runs.find((x) => x.grades && x.grades.includes("0") && x.status === "Audited") ?? s.runs[0];
   return { s, r };
 }
@@ -174,9 +184,9 @@ function renderSteps(d: Data) {
   const sig = d.signers[r.model]?.[0]?.address;
   const steps = [
     { h: "Commit", p: "The owner commits a salted Merkle root of the test set. start_run fixes a nonce from random_seed before inference. commit_run then stores a Merkle root over the signed responses and the grade vector. The contract computes the score.", c: [`<span class="c">commit_suite</span> ${esc(s.suite_id)}`, `root ${short(s.root, 12, 6)}`, `<span class="c">commit_run</span> score ${r.score}/${s.n}`, link(lc.commit_suite, "commit_suite")] },
-    { h: "Draw", p: "Once every started run is committed, any account can call draw_challenge. random_seed picks 20 indices, and every run on the suite must reveal the same 20.", c: [`<span class="c">draw_challenge</span> #${fmt(s.draw_height)}`, `seed ${short(s.draw_seed, 12, 6)}`, `called by ${esc(s.drawn_by ?? "–")}`, link(lc.draw, "draw")] },
-    { h: "Reveal", p: "For each drawn entry the owner publishes the question, salt, answer key, raw response bytes, signature and two Merkle proofs. After the deadline anyone can call expire, and a run with entries missing becomes FAILED.", c: [`<span class="c">reveal</span> ${r.revealed.length} entries`, `${r.reveal_txs?.length ?? 4} transactions`, r.reveal_txs?.[0] ? link(r.reveal_txs[0].tx, "first reveal") : "", ""] },
-    { h: "Verify", p: "The contract rebuilds the request bytes, recovers the signer with ecrecover, checks it against the keys pinned for that model and re-grades the answer. One failed check marks the run FAILED.", c: [`<span class="c">ecrecover</span> → ${short(sig, 8, 4)}`, `signer is pinned`, `status <span style="color:var(--ok)">${esc(r.status.toUpperCase())}</span>`, ""] },
+    { h: "Draw", p: "Once every started run is committed or past its commit deadline, any account can call draw_challenge. random_seed picks 20 indices, and every run on the suite must reveal the same 20.", c: [`<span class="c">draw_challenge</span> #${fmt(s.draw_height)}`, `seed ${short(s.draw_seed, 12, 6)}`, `called by ${esc(s.drawn_by ?? "–")}`, link(lc.draw, "draw")] },
+    { h: "Reveal", p: "In a later block than the draw, the owner publishes for each drawn entry the question, salt, answer key, raw response bytes, signature and two Merkle proofs. After the deadline anyone can call expire, and a run with entries missing becomes FAILED.", c: [`<span class="c">reveal</span> ${r.revealed.length} entries`, `${r.reveal_txs?.length ?? 4} transactions`, r.reveal_txs?.[0] ? link(r.reveal_txs[0].tx, "first reveal") : "", ""] },
+    { h: "Verify", p: "The contract rebuilds the request bytes, recovers the signer with ecrecover, checks it against the signers fixed for this run at start_run and re-grades the answer. One failed check marks the run FAILED.", c: [`<span class="c">ecrecover</span> → ${short(sig, 8, 4)}`, `signer is pinned`, `status <span style="color:var(--ok)">${esc(r.status.toUpperCase())}</span>`, ""] },
   ];
   $("#steps").innerHTML = steps.map((x, i) => `<article class="step"><span class="step-n">0${i + 1}</span><h3>${x.h}</h3><p>${x.p}</p><div class="tx">${x.c.filter(Boolean).map((l) => `<div>${l}</div>`).join("")}</div></article>`).join("");
 }
@@ -233,7 +243,7 @@ function renderRun() {
       <div class="run-id">${esc(CONTRACT)} / <b>${esc(s.suite_id)}</b></div>
       ${s.runs.length > 1 ? `<div class="models" role="group" aria-label="Model">${s.runs.map((x) => `<button type="button" aria-pressed="${x.model === r.model}" data-m="${esc(x.model)}">${esc(modelLabel(x.model))}</button>`).join("")}</div>` : `<span class="pill ${mock ? "mock" : ""}">${esc(mock ? "DEV-ONLY mock" : modelLabel(r.model))}</span>`}
     </div>
-    ${mock ? `<div class="mock-warn"><b>Mock signer.</b> Signed with a DEV-ONLY key whose private half is public. No NEAR AI, no TEE. These runs exercise the contract, including a cheat that fails. No claim cites them.</div>` : ""}
+    ${mock ? `<div class="mock-warn"><b>Mock signer.</b> Signed with a DEV-ONLY key whose private half is public. No NEAR AI, no TEE. These runs exercise the contract, including a cheat that fails. No result cites them.</div>` : ""}
     <div class="run-hero">
       <div>
         <div class="score">${r.score ?? "–"}<small>/ ${s.n}</small></div>
@@ -245,6 +255,8 @@ function renderRun() {
           <dt>Run nonce</dt><dd>${esc(short(r.nonce, 14, 8))}</dd>
           <dt>Drawn at</dt><dd>${s.draw_height ? `block #${fmt(s.draw_height)} by <a href="${acct(s.drawn_by!)}" rel="noopener">${esc(s.drawn_by)}</a>` : "not drawn"}</dd>
           <dt>Owner</dt><dd><a href="${acct(s.owner)}" rel="noopener">${esc(s.owner)}</a></dd>
+          ${r.signers?.length ? `<dt>Run signers</dt><dd title="${esc(r.signers.join(", "))}">${r.signers.map((a) => esc(short(a, 6, 4))).join(", ")} (fixed at start_run)</dd>` : ""}
+          ${s.bond_payee !== undefined ? `<dt>Bond</dt><dd>${s.bond_payee ? `${s.bond_paid ? "paid to" : "owed to"} <a href="${acct(s.bond_payee)}" rel="noopener">${esc(s.bond_payee)}</a>` : "held until every run settles"}</dd>` : ""}
           ${r.fail_reason ? `<dt>Fail reason</dt><dd style="color:var(--bad);white-space:normal">${esc(r.fail_reason)}</dd>` : ""}
         </dl>
       </div>
@@ -350,22 +362,19 @@ async function verifyAll(s: Suite, r: Run) {
 
 /* ---------- gap ---------- */
 function renderGap(d: Data) {
-  const real = d.suites.filter((s) => s.kind === "real");
-  const pub = real.find((s) => /public/.test(s.suite_id)), sea = real.find((s) => /sealed/.test(s.suite_id));
-  if (!pub || !sea) { $("#gap-table").innerHTML = `<p class="fine">Needs an audited public suite and an audited private suite.</p>`; return; }
-  const models = sea.runs.map((r) => r.model).filter((m) => pub.runs.some((r) => r.model === m));
-  $("#gap-table").innerHTML = models.map((m) => {
-    const a = pub.runs.find((r) => r.model === m)!, b = sea.runs.find((r) => r.model === m)!;
-    const pa = (100 * (a.score ?? 0)) / pub.n, pb = (100 * (b.score ?? 0)) / sea.n;
-    return `<article class="card gap-card"><div class="m">${esc(m)}</div>
+  const el = $("#gap-table");
+  const gaps = d.gaps ?? [];
+  if (!gaps.length) { el.innerHTML = `<p class="fine">No gap analysis in this build.</p>`; return; }
+  const pct = (x: number) => (x > 0 ? `+${x}` : x < 0 ? `−${-x}` : "0");
+  el.innerHTML = gaps.map((g) => `<div class="gap-group"><h3 class="gap-h">${esc(g.label)} <span class="mono">${esc(g.public)} vs ${esc(g.sealed)}</span></h3><div class="gap">${g.rows.map((x) => `<article class="card gap-card"><div class="m">${esc(x.model)}</div>
       <div class="bars">
-        <div class="bar"><span>Public problems</span><span class="tr"><i class="pub" data-w="${pa}"></i></span><b>${a.score}/${pub.n}</b></div>
-        <div class="bar"><span>Private variants</span><span class="tr"><i data-w="${pb}"></i></span><b>${b.score}/${sea.n}</b></div>
+        <div class="bar"><span>Public</span><span class="tr"><i class="pub" data-w="${x.public_pct}"></i></span><b>${esc(x.public)}</b></div>
+        <div class="bar"><span>Sealed</span><span class="tr"><i data-w="${x.sealed_pct}"></i></span><b>${esc(x.sealed)}</b></div>
       </div>
-      <div class="gap-delta"><span>Public minus private<br><span class="pill ${esc(a.status)}">public ${esc(a.status)}</span> <span class="pill ${esc(b.status)}">private ${esc(b.status)}</span></span><b>${(pa - pb).toFixed(0)} pts</b></div></article>`;
-  }).join("");
-  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { $$<HTMLElement>(".tr i", e.target).forEach((i) => (i.style.width = i.dataset.w + "%")); io.disconnect(); } }), { threshold: 0.3 });
-  io.observe($("#gap-table"));
+      <div class="gap-delta"><span>Public minus sealed, 95% CI<br><span class="mono">[${pct(x.paired.ci95_pts[0])}, ${pct(x.paired.ci95_pts[1])}]</span> · ${x.paired.detected ? "gap detected" : "no gap detected"}</span><b>${pct(x.paired.gap_pts)} pts</b></div></article>`).join("")}</div></div>`).join("")
+    + `<p class="fine gap-fine">Computed by <code>npm run gap</code> from public chain data at block #${fmt(gaps[0].block)}. ${esc(gaps[0].method)}.</p>`;
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { $$<HTMLElement>(".tr i", e.target).forEach((i) => (i.style.width = i.dataset.w + "%")); io.disconnect(); } }), { threshold: 0.2 });
+  io.observe(el);
 }
 
 /* ---------- pins ---------- */
@@ -397,7 +406,7 @@ function withContent(raw: string, oldC: string, newC: string) {
   try { const j = JSON.parse(raw); j.choices[0].message.content = newC; return JSON.stringify(j); } catch { return raw + " "; }
 }
 async function setupLab(d: Data) {
-  const s = d.suites.find((x) => x.suite_id === "gsm-sealed-v1") ?? d.suites.find((x) => x.kind === "real" && x.runs.some((r) => r.reveal_file));
+  const s = d.suites.find((x) => x.suite_id === "aime-sealed-v1") ?? d.suites.find((x) => x.kind === "real" && x.runs.some((r) => r.reveal_file));
   const r = s?.runs.find((x) => /Qwen/.test(x.model) && x.reveal_file) ?? s?.runs.find((x) => x.reveal_file);
   const lab = $("#lab");
   if (!s || !r) { lab.innerHTML = `<p class="fine" style="padding:24px">No published reveal file for a real run.</p>`; return; }

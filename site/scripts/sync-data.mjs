@@ -39,6 +39,13 @@ const LIFECYCLE_BY_CONTRACT = { "sealedbench-hk26.testnet": {
   "demo-mock-public-v1": { draw: "2u6c8txuRbEHZaTRVv3jQrzmYCgrqTcWjkbVd7ZFvFEW" },
   "demo-mock-cheat-v2": { draw: "2Ddwwjxk8HLSDXjfrpeBLP2Jbc6QJNP8sFEuaFj74QEf" },
 } };
+// v2+: the publishing workstream writes fixtures/lifecycle-v2.json ({contract, txs: {suite: {commit_suite, draw, runs}}}).
+for (const f of ["fixtures/lifecycle-v2.json"]) {
+  const p = join(root, f);
+  if (!existsSync(p)) continue;
+  const j = JSON.parse(readFileSync(p, "utf8"));
+  if (j.contract) LIFECYCLE_BY_CONTRACT[j.contract] = Object.fromEntries(Object.entries(j.txs).filter(([k]) => !k.startsWith("_")));
+}
 const LIFECYCLE = LIFECYCLE_BY_CONTRACT[CONTRACT] ?? {};
 
 const content = (raw) => { try { return JSON.parse(raw).choices[0].message.content ?? ""; } catch { return ""; } };
@@ -67,7 +74,7 @@ for (const { kind, j } of files) {
   if (!suites.has(sid)) {
     const { value: s, block: b } = await view("get_suite", { suite_id: sid });
     block = Math.max(block, b);
-    suites.set(sid, { suite_id: sid, kind, owner: s.owner, note: s.note, root: s.root, n: s.n, k: s.k, commit_height: s.commit_height, challenge: s.challenge, draw_height: s.draw_height, draw_seed: s.draw_seed, drawn_by: s.drawn_by, reveal_deadline: s.reveal_deadline, request_template: s.request_template, lifecycle: LIFECYCLE[sid] ?? {}, runs: [] });
+    suites.set(sid, { suite_id: sid, kind, owner: s.owner, note: s.note, root: s.root, n: s.n, k: s.k, commit_height: s.commit_height, challenge: s.challenge, draw_height: s.draw_height, draw_seed: s.draw_seed, drawn_by: s.drawn_by, reveal_deadline: s.reveal_deadline, bond_payee: s.bond_payee, bond_paid: s.bond_paid, request_template: s.request_template, lifecycle: LIFECYCLE[sid] ?? {}, runs: [] });
   }
   if (!signers[model]) signers[model] = (await view("get_signers", { model })).value;
   const { value: run } = await view("get_run", { suite_id: sid, model });
@@ -76,12 +83,22 @@ for (const { kind, j } of files) {
   writeFileSync(join(out, "reveal", file), JSON.stringify({ suite_id: sid, model, items: j.revealed }));
   suites.get(sid).runs.push({
     model, status: run.status, score: run.score, grades: run.grades, nonce: run.nonce, run_root: run.run_root, start_height: run.start_height, commit_height: run.commit_height,
-    revealed: run.revealed, sample_correct: run.sample_correct, fail_reason: run.fail_reason, claim: audit.claim,
+    revealed: run.revealed, sample_correct: run.sample_correct, fail_reason: run.fail_reason, claim: audit.claim, signers: run.signers, commit_deadline: run.commit_deadline,
     reveal_file: file, reveal_txs: j.txs.map((t) => ({ tx: t.tx, status: t.status })),
     entries: j.revealed.map((it) => { const c = content(it.response); const a = responseAnswer(it.response); return { idx: it.idx, question: it.question, answer: it.answer, grade: it.grade, content: c, model_answer: a == null ? null : String(a), signature: it.signature }; }),
   });
 }
-const order = (s) => (s.kind === "real" ? 0 : 1) + (/sealed/.test(s.suite_id) ? 0 : 0.5);
-const snapshot = { generated_at: new Date().toISOString(), block_height: block, contract: CONTRACT, network: "testnet", explorer: "https://testnet.nearblocks.io", signers, suites: [...suites.values()].sort((a, b) => order(a) - order(b)) };
+const order = (s) => (s.kind === "real" ? 0 : 10) + (/^gsm/.test(s.suite_id) ? 2 : 0) + (/sealed/.test(s.suite_id) ? 0 : 1) + (/cheat/.test(s.suite_id) ? 1 : 0);
+// Paired public-vs-sealed gap, computed by the CLI from chain data (method in PREREGISTRATION.md).
+import { execFileSync } from "node:child_process";
+const GAP_PAIRS = [["AIME-style (pre-registered)", "aime-public-v1", "aime-sealed-v1"], ["GSM8K control", "gsm-public-v2", "gsm-sealed-v2"]];
+const gaps = [];
+for (const [label, pub, sea] of GAP_PAIRS) {
+  if (!suites.has(pub) || !suites.has(sea)) continue;
+  const g = JSON.parse(execFileSync("node", [join(root, "cli/src/cli.ts"), "gap", "--public", pub, "--sealed", sea], { cwd: root, encoding: "utf8" }));
+  if (!g.ok || g.contract !== CONTRACT) throw new Error(`gap ${pub}/${sea} failed or is for another contract`);
+  gaps.push({ label, public: pub, sealed: sea, block: g.block, method: g.method, rows: g.rows });
+}
+const snapshot = { generated_at: new Date().toISOString(), block_height: block, contract: CONTRACT, network: "testnet", explorer: "https://testnet.nearblocks.io", signers, suites: [...suites.values()].sort((a, b) => order(a) - order(b)), gaps };
 writeFileSync(join(out, "snapshot.json"), JSON.stringify(snapshot));
 console.log(JSON.stringify({ ok: true, suites: snapshot.suites.map((s) => `${s.suite_id}: ${s.runs.map((r) => `${r.model} ${r.score}/${s.n} ${r.status}`).join(", ")}`), block }, null, 1));
