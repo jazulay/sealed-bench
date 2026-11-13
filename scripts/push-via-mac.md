@@ -9,19 +9,19 @@ Commit identity on the box (repo-local):
 
 ## 1. Box: pre-publish checks
 
-    cd /workspace/near-hackathon/sealed-bench
-    /tmp/gitleaks git --no-banner .           # expect "no leaks found" (.gitleaks.toml allowlists public attestation reports)
+    cd sealed-bench                           # the build checkout
+    gitleaks git --no-banner .           # expect "no leaks found" (.gitleaks.toml allowlists public attestation reports)
     git ls-files | rg -i 'runs/|secret|credential|\.env' || echo ok   # expect ok
     (cd contract && cargo test) && npm test && npm run verify && npm run tamper
 
 ## 2. Box: bundle all branches
 
-    git bundle create /workspace/near-hackathon/sealed-bench.bundle --all
-    git bundle verify /workspace/near-hackathon/sealed-bench.bundle
+    git bundle create ../sealed-bench.bundle --all
+    git bundle verify ../sealed-bench.bundle
 
 ## 3. Copy the bundle to the Mac
 
-Copy it to `~/Projects/sealed-bench.bundle` on Mac machine `7fe7434d-15a5-463e-a91f-2976f7a5d56d`, using CopyFromBox (overwrite).
+Copy the bundle to `~/Projects/sealed-bench.bundle` on the Mac (overwrite the previous one).
 
 ## 4. Mac: fast-forward and push (no edits)
 
