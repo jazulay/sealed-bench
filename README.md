@@ -6,6 +6,8 @@ Sealed Bench runs **sampled, on-chain spot checks** of private AI evaluations on
 
 **Live site and audit explorer: https://sealed-bench.up.railway.app**. It reads the testnet contract in your browser over public RPC, with no keys and no backend.
 
+**Demo video (X post, built at NEAR HACKATHON): https://x.com/josephstayhappy/status/2121062471309898192**. 84 seconds: commit, a non-owner draw, the reveal checked against NEAR AI TEE signatures, the explorer re-checking 20/20, the tamper lab, the AIME-style result and `npm run verify`.
+
 **Problem.** Published benchmarks can end up in training data, so a high score may come from memorization. A private test set avoids that, and outsiders then have only the owner's number. Sealed Bench keeps the set private and spot-checks the score on-chain:
 
 1. The owner commits a Merkle root of the sealed test set on NEAR.
